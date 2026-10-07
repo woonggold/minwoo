@@ -186,11 +186,32 @@ function vpick(k,i){const e={...VEV[k][3][i][1]};let t='';
  if(g.st>=100)return end('한계 엔딩 (배드)','스트레스가 한계에 도달했습니다. 민우는 더는 학교에 나갈 수 없게 되었습니다.');
  ov('결과',`<p>${t}${esum(e)}</p><button class="go" onclick="$('ov').style.display='none'">확인</button>`)}
 function nextWk(){$('ov').style.display='none';if(g.vev&&!g.over){g.vev=false;vevent()}}
-function ov(h,b){$('ovb').innerHTML=`<h1>${h}</h1>${b}`;$('ov').style.display='grid'}
+function ov(h,b){$('ovb').innerHTML=`<h1>${h}</h1>${b}`;delete $('ovb').dataset.book;$('ov').style.display='grid'}
 function end(h,b){g.over=true;g.q=[];draw();const nw=saveEnd(h);ov(h,`${nw?'<p class="nw">🎉 새 엔딩 수집! 📚 엔딩 도감에 기록되었습니다.</p>':''}<p>${b}</p><button class="go" onclick="start()">다시 시작</button> <button class="sm" onclick="book('showTitle()')">📚 엔딩 도감</button>`)}
 const ENDS=[['클리어! ✿ 정인을 이겼다','🏆','마지막 날 최종 대결에서 스탯 4종 모두 1200 이상'],['✨ 우주최강 각성 민우 엔딩 ✨','🌌','스탯 총합이 어마어마하게 커지면…?'],['👑 패왕색패기 민우 엔딩','👑','마지막 날 스탯 총합이 아주 아주 높다면'],['🌸 우주꽃미남 민우 엔딩','🌸','마지막 날 스탯 총합이 꽤 높다면'],['🐒 유인원 민우 엔딩','🐒','마지막 날 스탯 총합이 제법 높다면'],['시간 종료 (배드)','⌛','마지막 날까지 버텼지만 스탯이 모자라다면'],['9등급 엔딩 (배드)','📝','시험이 끝났을 때 공부 수치가 바닥이라면'],['전학 엔딩 (배드)','🚚','공부 수치가 0이 되면'],['한계 엔딩 (배드)','💥','스트레스가 100에 도달하면']],EK='minwoo459_endings';
-function loadEnds(){try{return JSON.parse(localStorage.getItem(EK))||{}}catch(e){return{}}}
-function saveEnd(h){const s=loadEnds(),nw=!s[h],x=s[h]||{n:0,first:new Date().toLocaleDateString('ko-KR')};x.n++;s[h]=x;try{localStorage.setItem(EK,JSON.stringify(s))}catch(e){}return nw}
+// ☁️ Firebase 설정: Firebase 콘솔 → 프로젝트 설정 → 내 앱(웹)의 firebaseConfig 값을 붙여 넣으세요. 비워 두면 브라우저에만 저장됩니다.
+const FB={apiKey:'',authDomain:'',projectId:'',appId:''};
+let CL=null,cUser=null,cData=null,bookBack=null;
+function loadLocal(){try{return JSON.parse(localStorage.getItem(EK))||{}}catch(e){return{}}}
+function saveLocal(s){try{localStorage.setItem(EK,JSON.stringify(s))}catch(e){}}
+function mergeEnds(a,b){const r={...a};for(const k in b){const x=r[k],y=b[k];if(!x){r[k]={...y};continue}const tx=x.t??9e15,ty=y.t??9e15;r[k]={n:Math.max(x.n||0,y.n||0),first:ty<tx?y.first:x.first,t:Math.min(tx,ty)};if(r[k].t>=9e15)delete r[k].t}return r}
+function loadEnds(){return cUser&&cData?cData:loadLocal()}
+function saveEnd(h){const s={...loadEnds()},nw=!s[h],x={...(s[h]||{n:0,first:new Date().toLocaleDateString('ko-KR'),t:Date.now()})};x.n++;s[h]=x;
+ if(cUser&&cData){cData=s;CL.put(cUser.uid,{[h]:x}).catch(e=>console.warn('클라우드 저장 실패',e))}else saveLocal(s);return nw}
+async function cloudInit(){if(!FB.apiKey)return;try{const V='10.12.2',B=`https://www.gstatic.com/firebasejs/${V}/firebase-`;
+  const [A,U,S]=await Promise.all([import(B+'app.js'),import(B+'auth.js'),import(B+'firestore.js')]);
+  const app=A.initializeApp(FB),auth=U.getAuth(app),db=S.getFirestore(app),ref=uid=>S.doc(db,'users',uid);
+  CL={login:()=>U.signInWithPopup(auth,new U.GoogleAuthProvider()),logout:()=>U.signOut(auth),
+   get:async uid=>{const d=await S.getDoc(ref(uid));return d.exists()?d.data().endings||{}:{}},
+   put:(uid,e)=>S.setDoc(ref(uid),{endings:e,updated:S.serverTimestamp()},{merge:true})};
+  U.onAuthStateChanged(auth,u=>cloudUser(u))}catch(e){console.warn('Firebase 연결 실패',e);CL=null}}
+async function cloudUser(u){cUser=u?{uid:u.uid,name:u.displayName||u.email||'플레이어'}:null;cData=null;
+ if(cUser){try{const m=mergeEnds(await CL.get(cUser.uid),loadLocal());cData=m;await CL.put(cUser.uid,m)}catch(e){console.warn('클라우드 불러오기 실패',e);cUser=null}}
+ if(bookBack&&$('ov').style.display!='none'&&$('ovb').dataset.book)book(bookBack)}
+async function cloudLogin(){try{await CL.login()}catch(e){alert('로그인에 실패했어요: '+(e.code||e.message))}}
+function cloudBox(){if(!CL)return `<p class="f" style="font-size:12px">기록은 이 브라우저에 저장됩니다. 다른 기기나 브라우저에서는 따로 모아야 해요.</p>`;
+ return cUser?`<p class="f" style="font-size:12px">☁️ <b>${cUser.name}</b> 계정에 저장 중 · 어느 기기에서든 같은 도감이 보여요. <button class="sm" style="padding:2px 8px;font-size:12px" onclick="CL.logout()">로그아웃</button></p>`
+  :`<p class="f" style="font-size:12px">지금은 이 브라우저에만 저장돼요. <button class="sm" style="padding:4px 10px;font-size:12px" onclick="cloudLogin()">☁️ 구글로 로그인하고 기록 동기화</button></p>`}
 let dbgN=0,dbgT=0;
 function dbgTap(){const t=Date.now();dbgN=t-dbgT<1500?dbgN+1:1;dbgT=t;if(dbgN>=5){dbgN=0;dbg()}}
 const dday=(y,m,d)=>Math.round((new Date(y,m-1,d)-dt(0))/864e5);
@@ -201,7 +222,7 @@ function dbg(){if(g.over||g.pend||g.q.length)return;const sum=Math.round(eff().r
  <button class="sm" style="margin-top:10px" onclick="$('ov').style.display='none'">닫기</button>`)}
 function dbgSet(){const v=id=>+$(id).value||0;g.s=ST.map((_,i)=>Math.max(0,v('dbs'+i)));g.sd=Math.min(100,v('dbsd'));g.st=clamp(v('dbst'));g.$=Math.max(0,v('db$'));$('ov').style.display='none';draw()}
 function dbgGo(d){g.d=d;g.wk=Math.floor((d-2)/7)+1;g.plan=[];g.last=[];$('ov').style.display='none';draw()}
-function book(back){const s=loadEnds(),got=ENDS.filter(e=>s[e[0]]).length;ov('📚 엔딩 도감',`<p>수집한 엔딩 <b>${got} / ${ENDS.length}</b></p><div class="bar"><i><b style="width:${got/ENDS.length*100}%;background:var(--pk)"></b></i></div><div class="eb">${ENDS.map(([h,e,hint])=>{const x=s[h];return x?`<div class="on"><span>${e}</span><b>${h}</b><small>${hint}<br>처음 본 날 ${x.first} · ${x.n}회</small></div>`:`<div><span>❔</span><b>???</b><small>힌트: ${hint}</small></div>`}).join('')}</div><p class="f" style="font-size:12px">기록은 이 브라우저에 저장됩니다. 다른 기기나 브라우저에서는 따로 모아야 해요.</p><button class="go" onclick="${back}">닫기</button>`)}
+function book(back){const s=loadEnds(),got=ENDS.filter(e=>s[e[0]]).length;ov('📚 엔딩 도감',`<p>수집한 엔딩 <b>${got} / ${ENDS.length}</b></p><div class="bar"><i><b style="width:${got/ENDS.length*100}%;background:var(--pk)"></b></i></div><div class="eb">${ENDS.map(([h,e,hint])=>{const x=s[h];return x?`<div class="on"><span>${e}</span><b>${h}</b><small>${hint}<br>처음 본 날 ${x.first} · ${x.n}회</small></div>`:`<div><span>❔</span><b>???</b><small>힌트: ${hint}</small></div>`}).join('')}</div>${cloudBox()}<button class="go" onclick="bookBack=null;${back}">닫기</button>`);bookBack=back;$('ovb').dataset.book=1}
 const bar=(v,c,l)=>`<div class="bar">${l} <span>${Math.round(v)}</span><i><b style="width:${Math.min(100,v)}%;background:${c}"></b></i></div>`;
 const bfl=(i,v)=>{const t=F[i].t,L=[];if(v>=80){L.push(['good',t[0]]);if(i)L.push(['good',t[1]])}else if(v>=50)L.push(['good',t[1]]);
  return (L.length?L.map(l=>`<div class="bf on ${l[0]}">${l[0]=='bad'?'⚠':'✔'} ${l[1]}</div>`).join(''):'<div class="bf">버프 없음</div>')+(v<80?`<div class="bf">다음 ${v<50?50:80}: ${t[v<50?1:0]}</div>`:'')};
@@ -237,5 +258,5 @@ function help(t='goal'){const ks=Object.keys(HELP),c=HELP[t][1];ov('📖 게임 
 function start(){$('ov').style.display='none';init()}
 init();
 function showTitle(){ov('✿ 민우의 459일 ✿','<p>2024.3.2 토요일, 개학 주말이 지나고 월요일부터 시작합니다. 월~금 다섯 칸에 행동을 채우면 토·일은 자동으로 휴식합니다.</p><p><b>승리 방법</b>: 스탯 4종을 상한 없이 키워 마지막 날 최종 대결에서 전부 1200↑. 친구들은 버프를 주는 존재입니다.</p><p>패배: 공부 0 (전학), 스트레스 100 (한계). 버튼에 커서를 올리면 정확한 수치가 보입니다.</p><button class="go" onclick="start()">게임 시작</button> <button class="sm" onclick="help()">📖 규칙 자세히 보기</button> <button class="sm" onclick="book(\'showTitle()\')">📚 엔딩 도감</button>')}
-showTitle();
+showTitle();cloudInit();
 </script></body></html>
