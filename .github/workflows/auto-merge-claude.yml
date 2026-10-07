@@ -1,0 +1,31 @@
+# Claude가 claude/ 브랜치에 올린 변경을 자동으로 main에 합칩니다.
+name: Auto-merge Claude branches into main
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-merge-main
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge branch into main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898281+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git merge --no-edit "origin/${GITHUB_REF_NAME}" -m "Auto-merge ${GITHUB_REF_NAME} into main"
+          git push origin main
