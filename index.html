@@ -190,7 +190,7 @@ function ov(h,b){$('ovb').innerHTML=`<h1>${h}</h1>${b}`;delete $('ovb').dataset.
 function end(h,b){g.over=true;g.q=[];draw();const nw=saveEnd(h);ov(h,`${nw?'<p class="nw">🎉 새 엔딩 수집! 📚 엔딩 도감에 기록되었습니다.</p>':''}<p>${b}</p><button class="go" onclick="start()">다시 시작</button> <button class="sm" onclick="book('showTitle()')">📚 엔딩 도감</button>`)}
 const ENDS=[['클리어! ✿ 정인을 이겼다','🏆','마지막 날 최종 대결에서 스탯 4종 모두 1200 이상'],['✨ 우주최강 각성 민우 엔딩 ✨','🌌','스탯 총합이 어마어마하게 커지면…?'],['👑 패왕색패기 민우 엔딩','👑','마지막 날 스탯 총합이 아주 아주 높다면'],['🌸 우주꽃미남 민우 엔딩','🌸','마지막 날 스탯 총합이 꽤 높다면'],['🐒 유인원 민우 엔딩','🐒','마지막 날 스탯 총합이 제법 높다면'],['시간 종료 (배드)','⌛','마지막 날까지 버텼지만 스탯이 모자라다면'],['9등급 엔딩 (배드)','📝','시험이 끝났을 때 공부 수치가 바닥이라면'],['전학 엔딩 (배드)','🚚','공부 수치가 0이 되면'],['한계 엔딩 (배드)','💥','스트레스가 100에 도달하면']],EK='minwoo459_endings';
 // ☁️ Firebase 설정: Firebase 콘솔 → 프로젝트 설정 → 내 앱(웹)의 firebaseConfig 값을 붙여 넣으세요. 비워 두면 브라우저에만 저장됩니다.
-const FB={apiKey:'',authDomain:'',projectId:'',appId:''};
+const FB={apiKey:'AIzaSyDLi_tTyS4MRE6Ou878EBhCuoZ709B3Cds',authDomain:'minwoo-ae82f.firebaseapp.com',projectId:'minwoo-ae82f',appId:'1:197012971662:web:8d85dd25b3117a982329df'};
 let CL=null,cUser=null,cData=null,bookBack=null;
 function loadLocal(){try{return JSON.parse(localStorage.getItem(EK))||{}}catch(e){return{}}}
 function saveLocal(s){try{localStorage.setItem(EK,JSON.stringify(s))}catch(e){}}
