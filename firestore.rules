@@ -5,5 +5,16 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+    // 랭킹: 누구나 볼 수 있고, 자기 기록(ranking/{자기 uid})만 쓸 수 있습니다.
+    match /ranking/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'total', 's0', 's1', 's2', 's3', 'end', 'at'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 12
+        && request.resource.data.total is number
+        && request.resource.data.s0 is number && request.resource.data.s1 is number
+        && request.resource.data.s2 is number && request.resource.data.s3 is number;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
   }
 }
