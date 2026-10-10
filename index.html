@@ -71,6 +71,11 @@ button small{display:block;color:#6b4a3f;font-size:11px}
 @media(prefers-reduced-motion:no-preference){#toast.show{animation:pop .32s cubic-bezier(.16,1,.3,1)}}
 .glog{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;background:#fff;color:#1f1f1f;font-size:17px;padding:13px 16px;border-radius:12px;box-shadow:inset 0 0 0 1.5px #dadce0,0 3px 0 var(--shb)}.glog:hover:not(:disabled){background:#f8f9fa}.mainv .glog{max-width:340px;margin:0 auto}.glog svg{width:24px;height:24px;flex:none}.glog small{display:block;color:#5f6368;font-size:12px;text-align:left}
 .awkv{position:relative;max-width:560px;margin:0 auto 6px}.awkv canvas{display:block;width:100%;height:auto;border-radius:20px;border:3px solid var(--pn);box-shadow:0 0 0 3px var(--yel),0 18px 40px -18px #7a2bd8aa;background:#000}.awkb{position:absolute;right:10px;bottom:10px;display:flex;gap:6px}.awkb button{padding:5px 10px;font-size:12px;background:#000a;color:#fff;box-shadow:none;backdrop-filter:blur(4px)}
+#cine{position:fixed;inset:0;z-index:60;background:#000;display:grid;place-items:center;overflow:hidden;cursor:default;user-select:none;-webkit-user-select:none;touch-action:none}#cine canvas{width:min(100vw,calc(100dvh*1120/878));height:auto;display:block}
+.crbg{position:absolute;inset:0;display:grid;place-items:center}.crbg img{position:absolute;width:min(70vw,60dvh);height:min(70vw,60dvh);object-fit:cover;border-radius:50%;opacity:0;filter:saturate(1.2);transition:opacity 1.2s;mask-image:radial-gradient(circle,#000 45%,transparent 72%);-webkit-mask-image:radial-gradient(circle,#000 45%,transparent 72%)}.crbg img.on{opacity:.28}
+.croll{position:absolute;left:0;right:0;top:0;text-align:center;color:#fff;font-family:Jua,sans-serif;padding:0 16px;text-shadow:0 2px 12px #000}.croll h2{font-size:clamp(30px,6vw,52px);color:#ff86a6;margin:0 0 9vh;font-weight:400}.croll .cr{margin:0 0 3.2vh}.croll .cr span{display:block;font-size:clamp(13px,2.2vw,17px);color:#ffd36e;letter-spacing:.08em}.croll .cr b{font-weight:400;font-size:clamp(20px,3.6vw,30px)}.croll .cn{font-size:clamp(14px,2.4vw,18px);color:#ddd;margin:8vh 0 0}.croll.still{top:50%;transform:translateY(-50%);max-height:100dvh;overflow:auto}
+#ov2{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,#2a1820 55%,transparent);backdrop-filter:blur(3px);display:none;place-items:center;padding:16px}#ov2 .pn{max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px}#ov2 h1{margin:0 0 10px;color:var(--pk);font-size:24px;font-weight:400}#ov2 .cd{font-size:13px;line-height:1.6;padding:12px 14px}
+@media(prefers-reduced-motion:no-preference){#ov2 .pn{animation:pop .32s cubic-bezier(.16,1,.3,1)}}
 input{font-family:inherit;font-size:13px;color:var(--ink);background:var(--pn);border:1.5px solid var(--line);border-radius:12px;padding:6px 10px}input:focus{outline:2px solid var(--pk);outline-offset:1px}
 
 </style></head><body><div class="wrap">
@@ -184,18 +189,139 @@ function awkSfx(ac,at,out){const N=ac.sampleRate,nb=(d)=>{const b=ac.createBuffe
  noise(at+5.4,2,1,8000,80);osc(at+5.4,'sine',70,25,1.6,1);
  [1047,1319,1568,2093].forEach((f,i)=>osc(at+5.65+i*.09,'triangle',f,f,.5,.18))}
 
-// 각성 엔딩 재생기
-let AWKP=null;const awkMuted=()=>{try{return localStorage.getItem('awk_mute')=='1'}catch(e){return false}};
-function awkMute(){const m=!awkMuted();try{localStorage.setItem('awk_mute',m?'1':'0')}catch(e){}if(AWKP&&AWKP.gain)AWKP.gain.gain.value=m?0:.5;const b=$('awks');if(b)b.textContent=m?'🔇 소리 꺼짐':'🔊 소리 켜짐'}
-function awkPlay(){const cv=$('awkc');if(!cv)return;const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;if(AWKP){cancelAnimationFrame(AWKP.raf);try{AWKP.gain&&AWKP.gain.disconnect()}catch(e){}}
- const P=AWKP={raf:0,gain:null};const img=new Image();img.src=AWK;
- const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
- img.onload=()=>{if(reduce){ctx.drawImage(img,0,0,W,H);return}
-  Object.keys(AWKSPR).forEach(k=>delete AWKSPR[k]);[...AWKFX.emo].forEach(awkSpr);let rebuilt=false;
-  try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){window._awkAC=window._awkAC||new AC();const ac=_awkAC;if(ac.state=='suspended')ac.resume();P.gain=ac.createGain();P.gain.gain.value=awkMuted()?0:.5;P.gain.connect(ac.destination);awkSfx(ac,ac.currentTime+.05,P.gain)}}catch(e){console.warn('효과음 실패',e)}
-  const t0=performance.now();const L=now=>{if(!document.contains(cv)||AWKP!==P){try{P.gain&&P.gain.disconnect()}catch(e){}return}let t=(now-t0)/1000;
-   if(!rebuilt&&t>=1.5){rebuilt=true;Object.keys(AWKSPR).forEach(k=>delete AWKSPR[k])}
-   if(t>AWKFX.dur)t=6+((t-6)%1);drawAwk(ctx,W,H,img,t);P.raf=requestAnimationFrame(L)};P.raf=requestAnimationFrame(L)}}
+// 🎬 애니메이션 재생기 (캔버스마다 따로 재생, 효과음 포함)
+const CPS=new Set(),CIMG={};const awkMuted=()=>{try{return localStorage.getItem('awk_mute')=='1'}catch(e){return false}};
+function awkMute(){const m=!awkMuted();try{localStorage.setItem('awk_mute',m?'1':'0')}catch(e){}CPS.forEach(P=>{if(P.gain&&!P.silent)P.gain.gain.value=m?0:.5});document.querySelectorAll('#awks,.cmute').forEach(b=>b.textContent=m?'🔇 소리 꺼짐':'🔊 소리 켜짐')}
+const cLoad=src=>CIMG[src]||(CIMG[src]=new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src}));
+function cAudio(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;window._awkAC=window._awkAC||new AC();if(_awkAC.state=='suspended')_awkAC.resume();return _awkAC}catch(e){return null}}
+function cStop(cv){if(cv&&cv._p){const P=cv._p;P.dead=true;cancelAnimationFrame(P.raf);try{P.gain&&P.gain.disconnect()}catch(e){}CPS.delete(P);cv._p=null}}
+function cinePlay(o){const cv=typeof o.cv=='string'?$(o.cv):o.cv;if(!cv)return;cStop(cv);const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,P=cv._p={raf:0,gain:null,silent:!!o.silent};CPS.add(P);
+ const keys=Object.keys(o.imgs||{});Promise.all(keys.map(k=>cLoad(o.imgs[k]))).then(arr=>{if(P.dead)return;const I={};keys.forEach((k,i)=>I[k]=arr[i]);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){o.draw(ctx,W,H,I,o.still??o.dur);if(o.done)setTimeout(o.done,o.reduceWait||2500);return}
+  Object.keys(AWKSPR).forEach(k=>delete AWKSPR[k]);[...AWKFX.emo,'🛡️','💦','💖','🤝','🕊️','👻','🕶️','👀','😮','🙌','📱','✨','👑','✈️','💼','🍔','☕','🏗️','🧹','💵','💸','💃','🥂','🍾','😎','🦘'].forEach(awkSpr);let rebuilt=false,fin=false;
+  if(!o.silent&&o.sfx){const ac=cAudio();if(ac){P.gain=ac.createGain();P.gain.gain.value=awkMuted()?0:.5;P.gain.connect(ac.destination);try{o.sfx(ac,ac.currentTime+.05,P.gain)}catch(e){console.warn('효과음 실패',e)}}}
+  const t0=performance.now()-(o.from||0)*1000,L=now=>{if(P.dead||!document.contains(cv)){cStop(cv);return}let t=(now-t0)/1000;if(!rebuilt&&t>=1.5){rebuilt=true;Object.keys(AWKSPR).forEach(k=>delete AWKSPR[k])}
+   if(t>=o.dur&&!fin){fin=true;if(o.done)o.done()}if(t>o.dur)t=o.loopFrom+((t-o.loopFrom)%(o.dur-o.loopFrom));o.draw(ctx,W,H,I,t);P.raf=requestAnimationFrame(L)};P.raf=requestAnimationFrame(L)})}
+function awkPlay(op={}){cinePlay({cv:op.cv||'awkc',draw:(c,W,H,I,t)=>drawAwk(c,W,H,I.a,t),sfx:awkSfx,dur:AWKFX.dur,loopFrom:6,imgs:{a:AWK},still:6.5,...op})}
+// 🌌 첫 각성: 화면 가득 애니메이션 → 크레딧 → 바뀌는 점 안내 (그동안 다른 조작 불가)
+const CREDITS=[['','전설의 민우키우기','big'],['제작','이정웅, 클로드'],['콘티','이정웅'],['검수','이정웅, 이성복'],...Array.from({length:11},(_,i)=>[`사진${i+1}`,'백민우']),['SPECIAL THANKS','장준혁 · 장윤성 · 장현우 · 백민우 · 최승빈'],['','본 이야기는 백민우의 이야기를 바탕으로 각색되었습니다.','note'],['','Copyright © funjam 2026.','note']];
+function cineBlock(e){if($('cine')){e.preventDefault();e.stopImmediatePropagation()}}
+function awkFirst(){const d=document.createElement('div');d.id='cine';d.innerHTML='<canvas id="cinec" width="1120" height="878" aria-label="각성 민우 애니메이션"></canvas>';document.body.appendChild(d);
+ window.addEventListener('keydown',cineBlock,true);window.addEventListener('keyup',cineBlock,true);
+ awkPlay({cv:'cinec',loopFrom:6.9,done:()=>setTimeout(awkCredits,500),reduceWait:3500})}
+function credSfx(ac,at,out){const k=cKit(ac,out),P=[[262,330,392],[220,262,330],[175,220,262],[196,247,294]];for(let n=0;n<11;n++){const c=P[n%4];k.chord(at+n*2,c,2.3,.05,'sine');c.concat(c.map(f=>f*2)).forEach((f,m)=>k.osc(at+n*2+m*.25,'triangle',f*2,f*2,.5,.04))}}
+function awkCredits(){const d=$('cine');if(!d)return;const cv=$('cinec');cStop(cv);cv.style.transition='opacity 1s';cv.style.opacity='0';
+ const ph=[AV,AWK,...EIMG,...PFP],bg=document.createElement('div');bg.className='crbg';bg.innerHTML=ph.map(s=>`<img src="${s}" alt="">`).join('');d.appendChild(bg);
+ const roll=document.createElement('div');roll.className='croll';roll.innerHTML=CREDITS.map(([a,b,c])=>c=='big'?`<h2>✿ ${b} ✿</h2>`:c=='note'?`<p class="cn">${b}</p>`:`<div class="cr"><span>${a}</span><b>${b}</b></div>`).join('');d.appendChild(roll);
+ const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;let P=null;if(!reduce){const ac=cAudio();if(ac){P={gain:ac.createGain(),silent:false};P.gain.gain.value=awkMuted()?0:.5;P.gain.connect(ac.destination);CPS.add(P);credSfx(ac,ac.currentTime+.1,P.gain)}}
+ const imgs=[...bg.children];let k=0;imgs[0].classList.add('on');const iv=setInterval(()=>{imgs[k].classList.remove('on');k=(k+1)%imgs.length;imgs[k].classList.add('on')},1900);
+ const fin=()=>{clearInterval(iv);if(P){try{P.gain.disconnect()}catch(e){}CPS.delete(P)}d.style.transition='opacity 1s';d.style.opacity='0';setTimeout(()=>{d.remove();window.removeEventListener('keydown',cineBlock,true);window.removeEventListener('keyup',cineBlock,true);awkInfo()},1000)};
+ if(reduce){roll.classList.add('still');setTimeout(fin,9000);return}
+ requestAnimationFrame(()=>{const D=20000,an=roll.animate([{transform:`translateY(${innerHeight}px)`},{transform:`translateY(-${roll.offsetHeight}px)`}],{duration:D,easing:'linear',fill:'forwards'});an.onfinish=fin})}
+function awkInfo(){let o=$('ov2');if(!o){o=document.createElement('div');o.id='ov2';o.innerHTML='<div class="pn"></div>';document.body.appendChild(o)}
+ o.querySelector('.pn').innerHTML=`<h1>🌌 각성 이후 달라지는 점</h1><p>축하해요! 민우가 처음으로 각성했어요. 다음 판부터 이렇게 바뀌어요.</p>
+ <div class="cho" style="grid-template-columns:1fr"><div class="cd">♾️ <b>스탯 무한 성장</b><br>스탯 총합이 12,000을 넘어도 게임이 끝나지 않아요. 원할 때 왼쪽의 <b>✨ 각민엔딩 보러가기</b> 버튼으로 각성 엔딩을 볼 수 있고, 안 누르면 마지막 날까지 계속 키울 수 있어요.</div>
+ <div class="cd">🎬 <b>2회차 엔딩 4종 해금</b><br>마지막 날 스탯 하나가 <b>5,230 이상</b>이면 가장 높은 스탯의 엔딩이 나와요.<br>🛡️ 탱킹 → 🕊️ 화해 엔딩 · 🗣️ 딜링 → 💀 살인 엔딩<br>💪 피지컬 → 🥊 야차클럽 승리 엔딩 · 😎 알파메일 → 🦘 시드니 워커홀릭남 엔딩</div>
+ <div class="cd" style="background:var(--hid)">👑 <b>대 민 우의 선물</b><br>각성 엔딩 화면 아래에서 히든 도구를 골라 다음 판을 그 도구와 함께 시작해요.</div></div>
+ <button class="go" style="width:100%;margin-top:12px" onclick="$('ov2').style.display='none'">확인</button>`;o.style.display='grid'}
+// 🎬 2회차 엔딩 단편 애니메이션 (정인은 가상의 인물이라 실루엣으로 표현)
+const E2=[['🕊️ 화해 엔딩','🕊️','정인이와 화해함'],['💀 살인 엔딩','💀','정인이를 살해함'],['🥊 야차클럽 승리 엔딩','🥊','정인이와의 야차에서 당당하게 승리하며 북일고 야차 1짱이 됨'],['🦘 시드니 워커홀릭남 엔딩','🦘','호주로 워커홀릭을 가며 알파메일이 되어 여자들을 끼고노는 삶이 됨']],E2MIN=5230,E2DUR=9;
+const cl=x=>x<0?0:x>1?1:x,lerp=(a,b,k)=>a+(b-a)*cl(k),easeOut=k=>1-Math.pow(1-cl(k),3);
+function cPhoto(ctx,img,x,y,r,ring,rot){if(!img)return;ctx.save();ctx.translate(x,y);if(rot)ctx.rotate(rot);ctx.beginPath();ctx.arc(0,0,r+r*.08,0,7);ctx.fillStyle=ring||'#ffd36e';ctx.fill();ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.clip();
+ const s=Math.max(2*r/img.width,2*r/img.height);ctx.drawImage(img,-img.width*s/2,-img.height*s/2,img.width*s,img.height*s);ctx.restore()}
+function cCard(ctx,img,x,y,w,h,rot){ctx.save();ctx.translate(x,y);if(rot)ctx.rotate(rot);ctx.fillStyle='#fff';ctx.fillRect(-w/2-8,-h/2-8,w+16,h+16);ctx.beginPath();ctx.rect(-w/2,-h/2,w,h);ctx.clip();const s=Math.max(w/img.width,h/img.height);ctx.drawImage(img,-img.width*s/2,-img.height*s/2,img.width*s,img.height*s);ctx.restore()}
+function cSil(ctx,x,y,s,o={}){ctx.save();ctx.translate(x,y);ctx.rotate(o.rot||0);ctx.scale(s*(o.sx||1),s*(o.sy||1));ctx.globalAlpha=o.alpha??1;ctx.fillStyle=o.col||'#0d0a12';
+ ctx.beginPath();ctx.arc(0,-1.55,.42,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(-.62,-1.05);ctx.quadraticCurveTo(0,-1.25,.62,-1.05);ctx.lineTo(.5,.35);ctx.lineTo(-.5,.35);ctx.closePath();ctx.fill();
+ ctx.lineCap='round';ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=.24;const ar=o.arm||0;ctx.beginPath();ctx.moveTo(-.55,-.9);ctx.lineTo(-.95-ar*.6,-.25-ar*.4);ctx.moveTo(.55,-.9);ctx.lineTo(.95+ar,-.3-ar*.3);ctx.stroke();
+ ctx.lineWidth=.28;ctx.beginPath();ctx.moveTo(-.25,.3);ctx.lineTo(-.32,1.15);ctx.moveTo(.25,.3);ctx.lineTo(.32,1.15);ctx.stroke();
+ if(o.happy){ctx.strokeStyle='#fff';ctx.lineWidth=.07;ctx.beginPath();ctx.arc(-.16,-1.55,.1,Math.PI,0);ctx.moveTo(.26,-1.55);ctx.arc(.16,-1.55,.1,Math.PI,0);ctx.stroke()}
+ else if(o.eyes!==false){ctx.fillStyle='#ff2a3a';ctx.shadowColor='#ff2a3a';ctx.shadowBlur=.3;ctx.beginPath();ctx.ellipse(-.16,-1.58,.11,.045,.25,0,7);ctx.ellipse(.16,-1.58,.11,.045,-.25,0,7);ctx.fill()}
+ if(o.cracks){ctx.strokeStyle='#fff';ctx.lineWidth=.035;const r=awkRng(9);for(let i=0;i<o.cracks;i++){let px=(r()-.5)*.9,py=-1.6+r()*1.8;ctx.beginPath();ctx.moveTo(px,py);for(let k=0;k<4;k++){px+=(r()-.5)*.35;py+=(r()-.5)*.35;ctx.lineTo(px,py)}ctx.stroke()}}
+ ctx.restore()}
+function cTxt(ctx,txt,x,y,size,fill,stroke,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot||0);ctx.font=`${size}px Jua, 'Noto Sans KR', sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.lineWidth=size*.18;ctx.strokeStyle=stroke||'#1a0820';ctx.strokeText(txt,0,0);ctx.fillStyle=fill||'#fff';ctx.fillText(txt,0,0);ctx.restore()}
+function cEmo(ctx,e,x,y,size,rot){const sp=awkSpr(e);ctx.save();ctx.translate(x,y);ctx.rotate(rot||0);ctx.drawImage(sp,-size/2,-size/2,size,size);ctx.restore()}
+function cBubble(ctx,txt,x,y,size,fill){ctx.save();ctx.font=`${size}px Jua, sans-serif`;const w=ctx.measureText(txt).width+size*.9,h=size*1.5;ctx.fillStyle=fill||'#fff';ctx.strokeStyle='#1a0820';ctx.lineWidth=size*.1;ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,h/2);ctx.fill();ctx.stroke();ctx.restore();cTxt(ctx,txt,x,y,size,'#1a0820','rgba(0,0,0,0)')}
+function cBurst(ctx,x,y,r,txt,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot||0);ctx.beginPath();for(let i=0;i<24;i++){const a=i/24*Math.PI*2,rr=i%2?r*.6:r;ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}ctx.closePath();ctx.fillStyle='#ffe14d';ctx.strokeStyle='#e0326e';ctx.lineWidth=r*.08;ctx.fill();ctx.stroke();ctx.restore();cTxt(ctx,txt,x,y,r*.55,'#e0326e','#fff',rot)}
+function cTitle(ctx,W,H,t,t0,i){const a=t-t0;if(a<0)return;const k=easeOut(a/.5),u=W/900;ctx.save();ctx.globalAlpha=cl(a/.3);ctx.fillStyle='rgba(20,8,30,.72)';const bh=H*.27;ctx.beginPath();ctx.roundRect(W*.05,H*.70-bh*.05,W*.9,bh,24*u);ctx.fill();ctx.restore();
+ awkText(ctx,W,E2[i][0],W/2,H*.76,(54+10*(1-k))*u*k,(t*90)%360,0);const sub=`<${E2[i][2]}>`;let fs=30*u;ctx.save();ctx.font=`${fs}px Jua`;while(ctx.measureText(sub).width>W*.84&&fs>14*u){fs-=1;ctx.font=`${fs}px Jua`}ctx.restore();if(a>.35)cTxt(ctx,sub,W/2,H*.88,fs,'#ffe9f0','#1a0820')}
+function cShake(t,amp){const r=awkRng(Math.floor(t*30)+7);return[(r()-.5)*amp,(r()-.5)*amp]}
+function cBg(ctx,W,H,c1,c2){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,c1);g.addColorStop(1,c2);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
+// 0: 화해 (탱킹)
+function drawE0(ctx,W,H,I,t){const u=W/900,mx=lerp(-W*.2,W*.3,t/.6),sx=lerp(W*1.2,W*.72,t/.6),warm=cl((t-4)/2);
+ cBg(ctx,W,H,`rgb(${lerp(43,255,warm)|0},${lerp(48,154,warm)|0},${lerp(69,120,warm)|0})`,`rgb(${lerp(20,255,warm)|0},${lerp(22,206,warm)|0},${lerp(34,140,warm)|0})`);
+ if(warm>0){ctx.fillStyle=`rgba(255,240,180,${.6*warm})`;ctx.beginPath();ctx.arc(W*.5,H*.62,W*.18,0,7);ctx.fill()}
+ const [dx,dy]=t>.6&&t<3.2?cShake(t,10*u):[0,0];
+ if(t<6.2){let lunge=0,ph=0;if(t>.6&&t<3.2){ph=((t-.6)%.32)/.32;lunge=Math.sin(ph*Math.PI)*W*.16}const kneel=cl((t-3.2)/.6),pink=cl((t-4.6)/1);
+  const col=`rgb(${lerp(13,255,pink)|0},${lerp(10,160,pink)|0},${lerp(18,190,pink)|0})`;cSil(ctx,sx-lunge+dx,H*.62+kneel*H*.08,H*.17,{arm:t<3.2?Math.sin(ph*Math.PI)*.9:0,sy:1-kneel*.25,col,happy:pink>.5});
+  const img=t<4.4?I.a:I.b,mxx=t<4.4?mx:lerp(W*.3,W*.42,(t-4.4)/.8);cPhoto(ctx,img,mxx+dx*.3,H*.45+dy*.3,W*.15,t<3.2?`hsl(${200+Math.sin(t*12)*20},90%,60%)`:'#ffd36e');
+  if(t>.6&&t<3.2){const k=Math.floor((t-.6)/.32),a=((t-.6)%.32);if(a<.18){cBurst(ctx,mx+W*.16,H*.45,W*.07*(1-a*2),['퍽!','쾅!','퍽!','팍!'][k%4],(k%2?.3:-.3));cTxt(ctx,['0','MISS','0','방어!','0','MISS','0','0'][k%8],mx,H*.22-a*H*.3,34*u,'#9fe8ff')}cEmo(ctx,'🛡️',mx-W*.13,H*.3,60*u*(1+.15*Math.sin(t*20)))}
+  if(t>=3.2&&t<4.6){cBubble(ctx,'헉...헉... 왜 안 쓰러져...',sx,H*.2,26*u);for(let i=0;i<3;i++)cEmo(ctx,'💦',sx+W*(.05+i*.04),H*.4+((t*3+i)%1)*H*.12,36*u)}
+  if(t>=4.6&&t<6.2){cBubble(ctx,'괜찮아, 친구야',W*.38,H*.16,28*u,'#fff4c2');for(let i=0;i<8;i++){const a=(t-4.6+i*.2)%1.6;cEmo(ctx,'💖',W*(.3+i*.06),H*.8-a*H*.5,(30+i%3*10)*u)}if(t>5.3)cEmo(ctx,'🤝',W*.57,H*.52,140*u*easeOut((t-5.3)/.4))}}
+ else{const a=t-6.2;cPhoto(ctx,I.b,W*.38,H*.33,W*.11,'#ffd36e');cSil(ctx,W*.62,H*.5,H*.1,{col:'#ff9fbe',happy:true,arm:.5});cEmo(ctx,'🤝',W*.5,H*.37,80*u);
+  for(let i=0;i<4;i++)cEmo(ctx,'🕊️',((a*.25+i*.3)%1.3-.15)*W,H*(.12+i*.05)+Math.sin(a*4+i)*8*u,50*u);cTitle(ctx,W,H,t,6.4,0)}
+ if(t<.6||(t>=4.4&&t<4.6)){ctx.fillStyle=`rgba(255,255,255,${t<.6?0:.5})`;ctx.fillRect(0,0,W,H)}}
+// 1: 살인 (딜링) — 피 없이 개그 톤: 말빨에 부서져 유령이 됨
+function drawE1(ctx,W,H,I,t){const u=W/900;cBg(ctx,W,H,'#120d24','#2a0f1e');const sp=ctx.createRadialGradient(W*.5,H*.1,10,W*.5,H*.5,W*.7);sp.addColorStop(0,'rgba(255,240,200,.18)');sp.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sp;ctx.fillRect(0,0,W,H);
+ const mx=lerp(-W*.2,W*.25,t/.5),sx=W*.74,hp=1-cl((t-.5)/3.8),[dx,dy]=t>.5&&t<5.3?cShake(t,(4+8*(1-hp))*u):[0,0];
+ if(t<6.8){cPhoto(ctx,I.a,mx,H*.48,W*.15,'#ff5a7a');
+  if(t<5.3){const cr=Math.floor((1-hp)*14);cSil(ctx,sx+dx,H*.66+dy,H*.17,{cracks:cr,sx:1+(t>4.3?Math.sin(t*60)*.05:0)});
+   ctx.fillStyle='#000a';ctx.fillRect(sx-W*.12,H*.13,W*.24,H*.035);ctx.fillStyle=hp>.3?'#5ee08a':'#ff4d4d';ctx.fillRect(sx-W*.12,H*.13,W*.24*hp,H*.035);cTxt(ctx,'정인 HP',sx,H*.1,20*u,'#fff');
+   const words=['팩트','논리','반박불가','ㅋㅋ','니말틀','정리해줌?','레전드','근거 3개'];for(let k=0;k<11;k++){const bt=.5+k*.35,a=t-bt;if(a<0||a>.4)continue;const x=lerp(mx+W*.12,sx,a/.35),y=H*.4+Math.sin(a*9+k)*H*.06;cBubble(ctx,words[k%8],x,y,(24+(k%3)*4)*u,k%2?'#fff':'#ffe14d');if(a>.33)cTxt(ctx,'-'+(500+k*137),sx+W*.06,H*.3-(a-.33)*H,30*u,'#ff6b6b')}
+   if(t>=4.3){const a=t-4.3;cBubble(ctx,'딜링 5230!!!',lerp(mx+W*.1,sx,a/.5),H*.42,44*u*(1+.1*Math.sin(a*30)),'#ff8fab')}}
+  else{const a=t-5.3,r=awkRng(31);for(let i=0;i<26;i++){const ang=r()*7,v=(.2+r()*.6)*W,x=sx+Math.cos(ang)*v*a,y=H*.55+Math.sin(ang)*v*a+H*.6*a*a;ctx.save();ctx.translate(x,y);ctx.rotate(a*8*r());ctx.globalAlpha=cl(1-a/1.2);ctx.fillStyle='#0d0a12';ctx.beginPath();ctx.moveTo(0,-10*u);ctx.lineTo(9*u,8*u);ctx.lineTo(-9*u,6*u);ctx.fill();ctx.restore()}
+   if(a<.9)cTxt(ctx,'K.O.',W*.5,H*.3,(120-a*30)*u,'#ff3355','#fff',-.1);const gy=H*.6-a*H*.18;cEmo(ctx,'👻',sx+Math.sin(a*5)*12*u,gy,110*u);ctx.strokeStyle='#ffe14d';ctx.lineWidth=5*u;ctx.beginPath();ctx.ellipse(sx+Math.sin(a*5)*12*u,gy-62*u,34*u,10*u,0,0,7);ctx.stroke();
+   ctx.strokeStyle='#5ee08a';ctx.lineWidth=4*u;ctx.beginPath();for(let x=0;x<W;x+=6){const k=x/W;ctx.lineTo(x,H*.9+(k<.35&&a<.5?Math.sin(k*90)*14*u:0))}ctx.stroke();cTxt(ctx,'삐————',W*.78,H*.84,26*u,'#5ee08a')}}
+ else{const a=t-6.8;cPhoto(ctx,I.b,W*.5,H*.38,W*.17,'#ff3355');cEmo(ctx,'🕶️',W*.5,H*.34,W*.2*easeOut(a/.4));cEmo(ctx,'👻',W*.82,H*.25+Math.sin(a*4)*10*u,70*u);cTitle(ctx,W,H,t,7,1)}
+ if(t>=5.3&&t<5.5){ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(0,0,W,H)}}
+// 2: 야차클럽 승리 (피지컬)
+function drawE2(ctx,W,H,I,t){const u=W/900;cBg(ctx,W,H,'#2b1446','#0f0a1c');if(t<5.4)cTxt(ctx,'🔥 북일고 야차 🔥',W/2,H*.07,34*u,'#ffd36e');
+ const r=awkRng(3);for(let i=0;i<16;i++){const x=W*(i+.5)/16,j=Math.abs(Math.sin(t*(6+r()*4)+i))*(t>5.4?22:8)*u;cEmo(ctx,['👀','😮','🙌','📱'][i%4],x,H*.95-j,46*u)}
+ const hpM=1,hpJ=t<1.4?1:1-cl((t-1.4)/3);const bar=(x,v,nm,flip)=>{ctx.fillStyle='#000a';ctx.fillRect(x,H*.13,W*.36,H*.035);ctx.fillStyle=v>.3?'#ffd36e':'#ff4d4d';ctx.fillRect(flip?x+W*.36*(1-v):x,H*.13,W*.36*v,H*.035);cTxt(ctx,nm,x+W*.18,H*.205,20*u,'#fff')};
+ if(t<5.4){bar(W*.06,hpM,'민우',0);bar(W*.58,hpJ,'정인',1)}
+ const [dx,dy]=t>1.4&&t<5.4?cShake(t,12*u):[0,0];
+ if(t<5.4){let mxx=W*.28,sxx=W*.72,syy=H*.66,rot=0,sc=H*.17;
+  if(t>1.4&&t<4.4){const ph=((t-1.4)%.25)/.25;mxx=lerp(W*.28,W*.55,Math.sin(ph*Math.PI));for(let k=1;k<4;k++){ctx.globalAlpha=.18*(4-k)/3;cPhoto(ctx,I.a,mxx-k*W*.04,H*.5,W*.11);ctx.globalAlpha=1}}
+  if(t>=4.4){const a=t-4.4;mxx=W*.6;sxx=W*.72+a*W*.3;syy=H*.66-a*a*H*1.4;rot=a*12;sc=H*.17*(1-a*.6)}
+  if(syy>-H*.2)cSil(ctx,sxx+dx,syy+dy,sc,{rot,arm:.3});cPhoto(ctx,I.a,mxx+dx*.3,(t>=4.4?H*.38:H*.5)+dy*.3,W*.12,'#ff8f3d');
+  if(t>1.4&&t<4.4){const k=Math.floor((t-1.4)/.25),a=(t-1.4)%.25;if(a<.15)cBurst(ctx,W*.66,H*.5,W*.09*(1-a*2),['POW','퍽!','쾅!','팍!','BAM'][k%5],k%2?.25:-.25);cTxt(ctx,`${k+1} HIT COMBO!`,W*.5,H*.3,(30+Math.min(k,12)*2)*u,'#ffe14d','#e0326e',-.06)}
+  if(t>=4.4)cTxt(ctx,'어퍼컷!!!',W*.45,H*.25,64*u,'#ff8f3d','#fff',-.12);if(t>=5&&t<5.4)cEmo(ctx,'✨',W*.92,H*.08,80*u*(1+Math.sin(t*40)*.3))
+  if(t<1.4){cTxt(ctx,t<.8?'ROUND 1':'FIGHT!',W/2,H*.4,(t<.8?70:110)*u,t<.8?'#fff':'#ff3355','#1a0820')}}
+ else{const a=t-5.4,r2=awkRng(11);for(let i=0;i<60;i++){const x=r2()*W,y=((r2()*H+a*H*(.3+r2()*.5))%H);ctx.fillStyle=`hsl(${r2()*360},90%,60%)`;ctx.fillRect(x,y,8*u,14*u)}
+  cCard(ctx,I.b,W*.5,H*.4,W*.24,W*.32,Math.sin(a*2)*.04);cEmo(ctx,'👑',W*.5,H*.4-W*.17,80*u*easeOut(a/.4));cTxt(ctx,'북일고 야차 1짱',W*.5,H*.055,42*u*easeOut(a/.4),'#ffd36e','#1a0820',Math.sin(a*3)*.05);cTitle(ctx,W,H,t,6.6,2)}
+ if(t>=1.4&&t<1.6){ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillRect(0,0,W,H)}}
+// 3: 시드니 워커홀릭남 (알파메일)
+function drawE3(ctx,W,H,I,t){const u=W/900;
+ if(t<2.2){cBg(ctx,W,H,'#6ec6ff','#d8f1ff');for(let i=0;i<5;i++){const x=((i*.27+t*.08)%1.2-.1)*W;ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(x,H*(.25+i%3*.18),70*u,26*u,0,0,7);ctx.fill()}
+  cTxt(ctx,'INCHEON',W*.12,H*.88,30*u,'#fff','#2266aa');cTxt(ctx,'SYDNEY',W*.88,H*.88,30*u,'#fff','#2266aa');const k=t/2.2,px=lerp(-W*.1,W*1.1,k),py=H*.55-Math.sin(k*Math.PI)*H*.25;
+  ctx.strokeStyle='rgba(255,255,255,.8)';ctx.setLineDash([12*u,10*u]);ctx.lineWidth=4*u;ctx.beginPath();ctx.moveTo(W*.12,H*.82);ctx.quadraticCurveTo(W*.5,H*.1,W*.88,H*.82);ctx.stroke();ctx.setLineDash([]);
+  cEmo(ctx,'✈️',px,py,170*u,.1);cPhoto(ctx,I.c,px+20*u,py-60*u,38*u,'#fff');cTxt(ctx,'호주 가즈아~',W/2,H*.12,40*u,'#ffd36e','#1a3a6a')}
+ else if(t<4.4){const a=t-2.2;cBg(ctx,W,H,'#ffb35c','#2aa7c9');ctx.fillStyle='#ffe28a';ctx.beginPath();ctx.arc(W*.82,H*.22,60*u,0,7);ctx.fill();
+  ctx.fillStyle='#f7f7f2';for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(W*(.58+i*.07),H*.62);ctx.quadraticCurveTo(W*(.62+i*.07),H*(.36+i*.03),W*(.68+i*.07),H*.62);ctx.fill()}ctx.fillStyle='#2a7f9e';ctx.fillRect(0,H*.62,W,H*.38);
+  cPhoto(ctx,I.d,W*.3,H*.45,W*.14,'#ffd36e');const jobs=['💼','🍔','☕','🏗️','🧹'];jobs.forEach((e,i)=>{const ang=a*3+i/jobs.length*Math.PI*2;cEmo(ctx,e,W*.3+Math.cos(ang)*W*.2,H*.45+Math.sin(ang)*H*.22,52*u)});
+  for(let i=0;i<14;i++){const r=awkRng(i+50),y=((r()*H+a*H*(.5+r()*.6))%H);cEmo(ctx,i%2?'💵':'💸',r()*W,y,40*u,a*r()*4)}
+  cTxt(ctx,'알바 3탕 워커홀릭 모드',W*.5,H*.1,40*u,'#fff','#b33a00');cTxt(ctx,'$ '+Math.floor(easeOut(a/2)*1000000).toLocaleString(),W*.7,H*.8,48*u,'#5effa0','#0b3b20')}
+ else{const a=t-4.4,beat=(a%.25)/.25;cBg(ctx,W,H,'#2a0b45','#0b0618');ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<6;i++){const ang=a*1.5+i*1.05;ctx.fillStyle=`hsla(${i*60+a*90},100%,60%,.16)`;ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2+Math.cos(ang)*W,Math.sin(ang)*W+H*.2);ctx.lineTo(W/2+Math.cos(ang+.2)*W,Math.sin(ang+.2)*W+H*.2);ctx.fill()}ctx.restore();
+  const z=1+.06*(1-beat),fin=t>=7,fy=fin?H*.33:H*.45,fs=fin?.72:1;cPhoto(ctx,I.e,W*.5,fy,W*.16*z*fs,'#ff8fab');const ring=['💃','🥂','💃','🍾','💃','😎','💃','💖'];ring.forEach((e,i)=>{const ang=a*1.4+i/ring.length*Math.PI*2;cEmo(ctx,e,W*.5+Math.cos(ang)*W*.3*fs,fy+Math.sin(ang)*H*.3*fs,(70+(i%2)*16)*u*z*fs,Math.sin(a*6+i)*.3)});
+  cEmo(ctx,'🦘',W*.12,H*.78-Math.abs(Math.sin(a*6))*H*.14,90*u);for(let i=0;i<6;i++){const k=(a*.8+i*.17)%1;cEmo(ctx,'💖',W*(.2+i*.12),H*(.9-k*.6),30*u)}
+  if(t<7)cTxt(ctx,'알파메일 모드 ON',W*.5,H*.1,44*u*(1+.08*(1-beat)),'#ff8fab','#fff');else cTitle(ctx,W,H,t,7,3)}
+ if(t>=2.2&&t<2.35||t>=4.4&&t<4.55){ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(0,0,W,H)}}
+const E2DRAW=[drawE0,drawE1,drawE2,drawE3];
+function e2Imgs(i){return[{a:EIMG[0],b:EIMG[1]},{a:PFP[1],b:AV},{a:PFP[2],b:EIMG[2]},{c:AV,d:PFP[3],e:PFP[0]}][i]}
+// 효과음
+function cKit(ac,out){const N=ac.sampleRate,nb=d=>{const b=ac.createBuffer(1,Math.max(1,N*d|0),N),c=b.getChannelData(0);for(let i=0;i<c.length;i++)c[i]=Math.random()*2-1;return b};
+ const env=(node,t,a,peak,d)=>{const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.001,t+d);node.connect(g);g.connect(out)};
+ return{noise:(t,d,peak,f0,f1)=>{const s=ac.createBufferSource();s.buffer=nb(d);const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(f1,t+d);s.connect(f);env(f,t,.005,peak,d);s.start(t);s.stop(t+d)},
+  osc:(t,type,f0,f1,d,peak)=>{const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+d);env(o,t,.01,peak,d);o.start(t);o.stop(t+d+.02)},
+  chord:(t,fs,d,peak,type)=>fs.forEach(f=>{const o=ac.createOscillator();o.type=type||'triangle';o.frequency.value=f;env(o,t,.08,peak,d);o.start(t);o.stop(t+d+.05)})}}
+function e2Sfx(i,ac,at,out){const k=cKit(ac,out),C=[523,659,784],F=[349,440,523],G=[392,494,587],A=[440,554,659];
+ if(i==0){for(let n=0;n<8;n++){k.noise(at+.6+n*.32,.18,.7,900,90);k.osc(at+.6+n*.32,'sine',120,50,.15,.6)}k.osc(at+3.3,'triangle',392,262,.9,.25);[523,659,784,1047].forEach((f,n)=>k.osc(at+4.5+n*.12,'triangle',f,f,.6,.2));k.chord(at+6.2,C,2.5,.12);k.chord(at+7.4,F.map(f=>f*1.5),1.5,.08)}
+ if(i==1){for(let n=0;n<11;n++){k.osc(at+.5+n*.35,'square',600+n*40,900+n*40,.08,.08);k.noise(at+.85+n*.35,.12,.5,1500,200)}k.osc(at+4.3,'sawtooth',300,80,.8,.25);k.noise(at+5.3,1.2,1,6000,80);k.osc(at+5.3,'sine',80,30,1,.9);k.osc(at+5.6,'sine',1000,1000,1.3,.15);k.chord(at+6.8,[220,262,330],2,.12,'sawtooth')}
+ if(i==2){k.osc(at+1.4,'sine',1500,1500,1.2,.3);k.osc(at+1.42,'sine',2250,2250,1,.15);for(let n=0;n<12;n++){k.noise(at+1.4+n*.25,.15,.8,1200,100);k.osc(at+1.4+n*.25,'sine',160,50,.14,.7)}k.noise(at+4.4,.5,.9,3000,200);k.osc(at+4.4,'sawtooth',200,900,.5,.2);k.noise(at+5.4,2.2,.25,2500,800);[C,F,G,C.map(f=>f*2)].forEach((c,n)=>k.chord(at+5.4+n*.25,c,.4,.12,'square'));k.chord(at+6.6,C,2,.1)}
+ if(i==3){k.noise(at,2.2,.5,300,3000);[1568,2093].forEach((f,n)=>k.osc(at+2.3+n*.08,'square',f,f,.25,.12));for(let n=0;n<4;n++)[1568,2093].forEach((f,m)=>k.osc(at+2.8+n*.4+m*.08,'square',f,f,.2,.08));
+  for(let n=0;n<11;n++){k.osc(at+4.4+n*.25,'sine',150,45,.22,.85);k.noise(at+4.52+n*.25,.05,.2,9000,6000);if(n%2)k.osc(at+4.4+n*.25,'sawtooth',[110,98,131,147][(n>>1)%4],[110,98,131,147][(n>>1)%4],.2,.15)}[C,G,A,F].forEach((c,n)=>k.chord(at+4.4+n*.66,c.map(f=>f/2),.6,.06,'square'));k.chord(at+7,C,2,.12);k.chord(at+7.2,C.map(f=>f*2),1.8,.06)}}
+function e2Html(i,e,sm){return `<div class="awkv"><canvas id="e2c" width="840" height="658" aria-label="${E2[i][0]} 애니메이션"></canvas><div class="awkb"><button class="cmute" onclick="awkMute()">${awkMuted()?'🔇 소리 꺼짐':'🔊 소리 켜짐'}</button><button onclick="e2Play(${i})">↻ 다시 보기</button></div></div><p><b>&lt;${E2[i][2]}&gt;</b></p><p>2025.6.3, 각성한 민우의 ${ST[i][0]} ${Math.round(e[i]).toLocaleString()}. ${['어떤 공격도 통하지 않는 민우 앞에서 정인은 결국 마음을 열었다.','민우의 말빨 앞에서 정인은 더는 버티지 못했다.','북일고 야차의 역사가 새로 쓰였다.','민우는 한국을 떠나 남반구에서 전설이 되었다.'][i]}</p><p class=f style="font-size:13px">${sm}</p>`}
+function e2Play(i){cinePlay({cv:'e2c',draw:(c,W,H,I,t)=>E2DRAW[i](c,W,H,I,t),sfx:(ac,at,out)=>e2Sfx(i,ac,at,out),dur:E2DUR,loopFrom:8,imgs:e2Imgs(i),still:8.6})}
+
 let g;const T=$('tip');
 const f1=v=>+v.toFixed(1),sg=v=>(v>0?'+':'')+f1(v),R=(m,k)=>(m.w[k]||[]).map(s=>' · '+s).join('');
 const nm=a=>({b:BL[a.i]?.[0],p:PL[a.i]?.[0],t:TR[a.i]?.[0],s:'공부하기',c:'도구 뽑기',d:'딸배',a:ADV[a.i]?.[0]+' 조언',r:'휴식',i:'멍하니 보냄'})[a.k];
@@ -303,12 +429,13 @@ function runDay(a){const d=g.d,x=dt(d),m=M(),k=a.k,wk=!x.getDay()||x.getDay()==6
  g.st=clamp(g.st);g.sd=Math.min(100,g.sd);g.a=g.a.map(clamp);
  if(g.sd<=0)return end('전학 엔딩 (배드)','공부 수치가 0이 되었습니다. 민우는 결국 다른 학교로 전학을 가게 됩니다.');
  if(g.st>=100)return end('한계 엔딩 (배드)','스트레스가 한계에 도달했습니다. 민우는 더는 학교에 나갈 수 없게 되었습니다.');
- if(eff().reduce((a,b)=>a+b,0)>=AWN)return awake();if(g.d>=TOTAL)finalEnd()}
+ if(!g.pa&&eff().reduce((a,b)=>a+b,0)>=AWN)return awake();if(g.d>=TOTAL)finalEnd()}
 function awake(){const e=eff(),sum=Math.round(e.reduce((a,b)=>a+b,0));end('✨ 우주최강 각성 민우 엔딩 ✨',`<div class="awkv"><canvas id="awkc" width="840" height="658" aria-label="각성 민우 애니메이션"></canvas><div class="awkb"><button id="awks" onclick="awkMute()">${awkMuted()?'🔇 소리 꺼짐':'🔊 소리 켜짐'}</button><button onclick="awkPlay()">↻ 다시 보기</button></div></div><br>스탯 총합이 <b>${sum.toLocaleString()}</b> (기준 ${AWN.toLocaleString()})을 돌파했다.<br>민우의 눈에서 빛이 터져 나오고, 정인은 더는 말을 잇지 못했다. 민우는 우주 최강으로 각성했다!<br><br>${e.map((v,i)=>ST[i][0]+' '+rank(v)[0]+' '+Math.round(v)).join(' · ')}`)}
 function fight(mi){const T0=need(mi),e=eff(),c=e.filter(v=>v>=T0).length,o=[['패배',14,-3],['패배',14,-3],['무승부',4,0],['승리',-6,1.5],['완승',-12,3]][c];
  g.st+=o[1];g.a=g.a.map(y=>y+o[2]);fpop(mi,T0,e,c,o);add(`⚔ 정인 대면 (필요 ${T0}) ${ST.map((s,i)=>s[1]+Math.round(e[i])+(e[i]>=T0?'○':'×')).join(' ')} → ${o[0]}! 스트레스 ${sg(o[1])}${o[2]?`, 친밀도 ${sg(o[2])}`:''}`,c>=3?'g':c==2?'m':'b')}
 function finalEnd(){g.d=TOTAL-1;const e=eff(),sm=`스탯 ${e.map((v,i)=>ST[i][0]+' '+rank(v)[0]+' '+Math.round(v)).join(' · ')}<br>친밀도 ${g.a.map(Math.round).join(' / ')}`;
  const sum=e.reduce((a,b)=>a+b,0),tot=`스탯 총합 <b>${Math.round(sum).toLocaleString()}</b>`,pic=i=>`<img class="xp" src="${EIMG[i]}" alt="">`;
+ if(g.pa){const k=e.map((v,i)=>[v,i]).filter(x=>x[0]>=E2MIN).sort((a,b)=>b[0]-a[0])[0];if(k)return end(E2[k[1]][0],e2Html(k[1],e,sm))}
  if(sum>=10000)return end('👑 패왕색패기 민우 엔딩',`${pic(0)}<br>2025.6.3, 최종 대결. 민우가 정인을 <b>가만히 바라보기만 했다.</b><br>그 순간 교실 공기가 무거워지고, 정인은 그대로 무릎을 꿇었다. 민우의 패왕색 패기가 각성했다!<br>${tot} (기준 10,000)<br><br>${sm}`);
  if(sum>=8000)return end('🌸 우주꽃미남 민우 엔딩',`${pic(1)}<br>2025.6.3, 최종 대결. 민우가 볼에 손을 얹고 미소 짓자 <b>정인의 눈이 멀어 버렸다.</b><br>싸울 필요도 없었다. 민우는 우주 최고의 꽃미남으로 등극했다!<br>${tot} (기준 8,000)<br><br>${sm}`);
  if(sum>=6000)return end('🐒 유인원 민우 엔딩',`${pic(2)}<br>2025.6.3, 최종 대결. 넘치는 힘을 주체하지 못한 민우는 <b>벚꽃나무 위로 올라가 내려오지 않았다.</b><br>정인은 한참을 올려다보다가 그냥 집에 갔다. 민우는 자연으로 돌아갔다.<br>${tot} (기준 6,000)<br><br>${sm}`);
@@ -334,14 +461,14 @@ function vevent(){g.vseen=g.vseen||[];let k;do{k=Math.random()*VEV.length|0}whil
 function vpick(k,i){const e={...VEV[k][3][i][1]};let t='';
  if(e.duel){const ok=eff()[1]>=need(Math.max(0,mid(g.d)))*.8;delete e.duel;Object.assign(e,ok?{st:-5,a:3}:{st:12});t=ok?'딜링으로 정인을 말로 눌렀다! ':'말싸움에서 밀렸다... '}
  if(e.item){const pool=ITEMS.map((_,j)=>j).filter(j=>!g.inv.includes(j)&&!ITEMS[j].lg);delete e.item;if(pool.length){const j=pool[Math.random()*pool.length|0];g.inv.push(j);if(g.eq.length<EQN())g.eq.push(j);t+=`도구 획득: ${ITEMS[j].n} (${ITEMS[j].d}) `}else t+='더 얻을 도구가 없다. '}
- g.a=g.a.map(v=>clamp(v+(e.a||0)));g.sd=Math.min(100,g.sd+(e.sd||0));g.st=clamp(g.st+(e.st||0));g.$=Math.max(0,g.$+(e.$||0));if(e.s)g.s[e.s[0]]+=e.s[1];draw();if(eff().reduce((a,b)=>a+b,0)>=AWN)return awake();
+ g.a=g.a.map(v=>clamp(v+(e.a||0)));g.sd=Math.min(100,g.sd+(e.sd||0));g.st=clamp(g.st+(e.st||0));g.$=Math.max(0,g.$+(e.$||0));if(e.s)g.s[e.s[0]]+=e.s[1];draw();if(!g.pa&&eff().reduce((a,b)=>a+b,0)>=AWN)return awake();
  if(g.sd<=0)return end('전학 엔딩 (배드)','방학 중 공부 수치가 0이 되었습니다. 민우는 결국 다른 학교로 전학을 가게 됩니다.');
  if(g.st>=100)return end('한계 엔딩 (배드)','스트레스가 한계에 도달했습니다. 민우는 더는 학교에 나갈 수 없게 되었습니다.');
  ov('결과',`<p>${t}${esum(e)}</p><button class="go" onclick="$('ov').style.display='none'">확인</button>`)}
 function nextWk(){$('ov').style.display='none';if(g.vev&&!g.over){g.vev=false;vevent()}}
 function ov(h,b){$('ovb').innerHTML=`<h1>${h}</h1>${b}`;delete $('ovb').dataset.book;$('ov').style.display='grid'}
-function end(h,b){g.over=true;g.q=[];draw();const awk=h==AWKE;if(awk)saveMeta(loadMeta());const nw=saveEnd(h);ov(h,`${nw?'<p class="nw">🎉 새 엔딩 수집! 📚 엔딩 도감에 기록되었습니다.</p>':''}<p>${b}</p><p id="rkmsg" class=f style="font-size:13px"></p>${awk?`<div id="daemin">${daeMin()}</div>`:''}<button class="go" onclick="start()">${awk?'👑 환생하기':'다시 시작'}</button> <button class="sm" onclick="book('showTitle()')">📚 엔딩 도감</button> <button class="sm" onclick="ranking(0)">🏆 랭킹</button>`);submitRank(h);if(awk)awkPlay()}
-const ENDS=[['클리어! ✿ 정인을 이겼다','🏆','마지막 날 최종 대결에서 스탯 4종 모두 1200 이상'],['✨ 우주최강 각성 민우 엔딩 ✨','🌌','스탯 총합이 어마어마하게 커지면…?'],['👑 패왕색패기 민우 엔딩','👑','마지막 날 스탯 총합이 아주 아주 높다면'],['🌸 우주꽃미남 민우 엔딩','🌸','마지막 날 스탯 총합이 꽤 높다면'],['🐒 유인원 민우 엔딩','🐒','마지막 날 스탯 총합이 제법 높다면'],['시간 종료 (배드)','⌛','마지막 날까지 버텼지만 스탯이 모자라다면'],['9등급 엔딩 (배드)','📝','시험이 끝났을 때 공부 수치가 바닥이라면'],['전학 엔딩 (배드)','🚚','공부 수치가 0이 되면'],['한계 엔딩 (배드)','💥','스트레스가 100에 도달하면']],EK='minwoo459_endings';
+function end(h,b){g.over=true;g.q=[];draw();const awk=h==AWKE;if(awk)saveMeta(loadMeta());const nw=saveEnd(h);ov(h,`${nw?'<p class="nw">🎉 새 엔딩 수집! 📚 엔딩 도감에 기록되었습니다.</p>':''}<p>${b}</p><p id="rkmsg" class=f style="font-size:13px"></p>${awk?`<div id="daemin">${daeMin()}</div>`:''}<button class="go" onclick="start()">${awk?'👑 환생하기':'다시 시작'}</button> <button class="sm" onclick="book('showTitle()')">📚 엔딩 도감</button> <button class="sm" onclick="ranking(0)">🏆 랭킹</button>`);submitRank(h);if(awk){if(nw){awkPlay({silent:true,from:6.5});awkFirst()}else awkPlay()}const e2=E2.findIndex(x=>x[0]==h);if(e2>=0)e2Play(e2)}
+const ENDS=[['클리어! ✿ 정인을 이겼다','🏆','마지막 날 최종 대결에서 스탯 4종 모두 1200 이상'],['✨ 우주최강 각성 민우 엔딩 ✨','🌌','스탯 총합이 어마어마하게 커지면…?'],['🕊️ 화해 엔딩','🕊️','각성 이후, 마지막 날 탱킹이 5,230 이상으로 가장 높다면'],['💀 살인 엔딩','💀','각성 이후, 마지막 날 딜링이 5,230 이상으로 가장 높다면'],['🥊 야차클럽 승리 엔딩','🥊','각성 이후, 마지막 날 피지컬이 5,230 이상으로 가장 높다면'],['🦘 시드니 워커홀릭남 엔딩','🦘','각성 이후, 마지막 날 알파메일이 5,230 이상으로 가장 높다면'],['👑 패왕색패기 민우 엔딩','👑','마지막 날 스탯 총합이 아주 아주 높다면'],['🌸 우주꽃미남 민우 엔딩','🌸','마지막 날 스탯 총합이 꽤 높다면'],['🐒 유인원 민우 엔딩','🐒','마지막 날 스탯 총합이 제법 높다면'],['시간 종료 (배드)','⌛','마지막 날까지 버텼지만 스탯이 모자라다면'],['9등급 엔딩 (배드)','📝','시험이 끝났을 때 공부 수치가 바닥이라면'],['전학 엔딩 (배드)','🚚','공부 수치가 0이 되면'],['한계 엔딩 (배드)','💥','스트레스가 100에 도달하면']],EK='minwoo459_endings';
 // ☁️ Firebase 설정: Firebase 콘솔 → 프로젝트 설정 → 내 앱(웹)의 firebaseConfig 값을 붙여 넣으세요. 비워 두면 브라우저에만 저장됩니다.
 const FB={apiKey:'AIzaSyDLi_tTyS4MRE6Ou878EBhCuoZ709B3Cds',authDomain:'minwoo-ae82f.firebaseapp.com',projectId:'minwoo-ae82f',appId:'1:197012971662:web:8d85dd25b3117a982329df'};
 let CL=null,cUser=null,cData=null,bookBack=null;
@@ -418,10 +545,10 @@ const bfl=(i,v)=>{const t=F[i].t,L=[];if(v>=80){L.push(['good',t[0]]);L.push(['g
 function draw(){draw0();checkAch()}
 function draw0(){const dd=Math.min(g.d,TOTAL-1),x=dt(dd),d=g.d,n=slots(),m=M();let nx=d,nf=d;while(nx<TOTAL&&!mom(nx))nx++;while(nf<TOTAL&&!fgt(nf))nf++;
  const T0=nf<TOTAL?need(mid(nf)):FIN,e=eff(),n80=g.a.filter(v=>v>=80).length;
- $('top').innerHTML=`<h1>✿ 전설의 민우키우기 ✿</h1><button class="sm" onclick="showTitle()">🏠 메인</button><button class="sm" onclick="help()">📖 게임 규칙</button><button class="sm" onclick="book(g.over?'showTitle()':&quot;$('ov').style.display='none'&quot;)">📚 엔딩 도감</button><div>📅 ${fd(x)} · ${g.wk}주차</div><div>💰 ${g.$.toLocaleString()}원</div><div style="width:100%"><span class="chip r">정인 Lv.${lvl(dd)}</span>${n80?`<span class="chip r">편애 소문 ×${RM[n80]} (80↑ ${n80}명)</span>`:''}${inVac(x)?'<span class="chip m">방학 (매주 특별 이벤트)</span>':''}${EXAM.includes(mid(dd))?'<span class="chip r">시험 기간 (끝나면 공부 -25)</span>':''}${nf<TOTAL?`<span class="chip">⚔ 정인 대면 ${md(dt(nf))} (필요 ${T0})</span>`:`<span class="chip">⚔ 최종 대결 6/3 (필요 ${FIN})</span>`}${nx<TOTAL?`<span class="chip m">👩 엄마 방문 ${md(dt(nx))}</span>`:''}</div>`;
+ $('top').innerHTML=`<h1>✿ 전설의 민우키우기 ✿</h1>${g.pa?'<span class="chip m" title="스탯 총합 12,000을 넘어도 계속 진행">🌌 각성 모드</span>':''}<button class="sm" onclick="showTitle()">🏠 메인</button><button class="sm" onclick="help()">📖 게임 규칙</button><button class="sm" onclick="book(g.over?'showTitle()':&quot;$('ov').style.display='none'&quot;)">📚 엔딩 도감</button><div>📅 ${fd(x)} · ${g.wk}주차</div><div>💰 ${g.$.toLocaleString()}원</div><div style="width:100%"><span class="chip r">정인 Lv.${lvl(dd)}</span>${n80?`<span class="chip r">편애 소문 ×${RM[n80]} (80↑ ${n80}명)</span>`:''}${inVac(x)?'<span class="chip m">방학 (매주 특별 이벤트)</span>':''}${EXAM.includes(mid(dd))?'<span class="chip r">시험 기간 (끝나면 공부 -25)</span>':''}${nf<TOTAL?`<span class="chip">⚔ 정인 대면 ${md(dt(nf))} (필요 ${T0})</span>`:`<span class="chip">⚔ 최종 대결 6/3 (필요 ${FIN})</span>`}${nx<TOTAL?`<span class="chip m">👩 엄마 방문 ${md(dt(nx))}</span>`:''}</div>`;
  $('L').innerHTML=`<h2>민우</h2><div class="av"><img src="${curAV()}" alt="민우"></div>${bar(g.st,'var(--red)','💢 스트레스')}${bar(g.sd,'var(--sky)','📚 공부')}<h2 style="margin-top:10px">스탯 <small class=f>(상한 없음 · 초록=다음 대결 통과)</small></h2>`+
   ST.map((s,i)=>{const v=e[i],[l,a,b]=rank(v),ok=v>=T0;return `<div class="bar">${s[1]} ${s[0]} <span class=rk>${l}</span> ${Math.round(v)}${m.fm!=1?` <small class=f>(기본 ${Math.round(g.s[i])})</small>`:''} <span class="${ok?'ok':'no'}">${ok?'✔':'✖'} ${T0}</span>${g.par.some(p=>ADV[p][2]==i)?' 🤝':''}<i><b style="width:${b?(v-a)/(b-a)*100:100}%;background:${ok?'var(--mint)':'var(--pk)'}"></b></i></div>`}).join('')+
-  `${(()=>{const s=e.reduce((a,b)=>a+b,0);return `<div class="bar">✨ 스탯 총합 ${Math.round(s).toLocaleString()} / ${AWN.toLocaleString()} <small class=f>(각성 엔딩)</small><i><b style="width:${Math.min(100,s/AWN*100)}%;background:var(--yel)"></b></i></div>`})()}<button class="sm" style="width:100%;margin-top:6px" onclick="help('stat')">❓ 스탯이 뭐예요?</button>`;
+  `${(()=>{const s=e.reduce((a,b)=>a+b,0);return `<div class="bar">✨ 스탯 총합 ${Math.round(s).toLocaleString()} / ${AWN.toLocaleString()} <small class=f>${g.pa?'(각성 모드: 무한 성장)':'(각성 엔딩)'}</small><i><b style="width:${Math.min(100,s/AWN*100)}%;background:var(--yel)"></b></i></div>${g.pa&&s>=AWN&&!g.over?`<button class="go" style="width:100%;margin-top:6px" onclick="if(!g.q.length&&!g.pend)awake()" ${g.q.length||g.pend?'disabled':''}>✨ 각민엔딩 보러가기</button>`:''}`})()}<button class="sm" style="width:100%;margin-top:6px" onclick="help('stat')">❓ 스탯이 뭐예요?</button>`;
  const pal=(a,sub,cls,dis)=>`<button class="act ${cls}" data-k="${a.k}" data-i="${a.i??0}" onclick="addP('${a.k}',${a.i??0})" ${dis?'disabled':''}>${ic(a)} ${nm(a)}<small>${sub}</small></button>`;
  const pa=new Set(g.plan.filter(a=>a.k=='a').map(a=>a.i)),ch=g.bd.map((b,i)=>b>0||g.par.includes(i)||pa.has(i)),nch=ch.filter(Boolean).length,full=g.plan.length>=n||g.over||g.q.length>0||g.pend,nc=g.plan.filter(a=>a.k=='c').length+1;let cs=0;for(let q=0;q<nc;q++)cs+=m.cost(q);
  let sl='';for(let i=0;i<n;i++){const a=g.plan[i],y=dt(d+i);sl+=`<div class="s" ${a?`onclick="delP(${i})"`:y.getDay()==1?'onclick="dbgTap()"':''}><b>${DAY[y.getDay()]} ${md(y)}</b><br>${a?ic(a)+' '+nm(a):'<small>비어 있음</small>'}</div>`}
@@ -436,7 +563,7 @@ function draw0(){const dd=Math.min(g.d,TOTAL-1),x=dt(dd),d=g.d,n=slots(),m=M();l
  const lock=g.q.length||g.pend||g.over;
  $('Rt').innerHTML=`<h2>친구들 (친밀도)</h2>`+F.map((f,i)=>`<div class="fr"><div class="fa"><img src="${f.img}" alt="${f.n}"></div><div class="fb"><b>${f.n}</b><div class="bf">“${f.r}”</div>${bar(g.a[i],'var(--pk)','♥')}${bfl(i,g.a[i])}</div></div>`).join('')+
   (g.hid.length?`<h2 style="margin-top:10px">🔮 히든 도구 (자동 적용)</h2>`+[...new Set(g.hid)].map(h=>`<div class="cd" style="background:var(--hid)"><b>${HID[h][0]} ${HID[h][1]}${cH(h)>1?` ×${cH(h)}`:''}</b><br>${HID[h][2]}</div>`).join(''):'')+`<h2 style="margin-top:10px">🎒 도구함 (장착 ${g.eq.length}/${EQN()})</h2>`+(g.inv.length?g.inv.map(j=>{const on=g.eq.includes(j),it=ITEMS[j],L=g.up[j]||0;return `<div class="cd ${it.lg?'lg':''} ${on?'':'off'}"><b>${it.lg?'★ ':''}${it.n}${L?` +${L}강`:''}</b> ${on?'<span class=ok>장착중</span>':''}<br>${it.d}${it.lg?`<br><span class=f>효과 ×${(1+.15*L).toFixed(2)}</span> <button class="sm" onclick="upg(${j})" ${lock||L>=10||g.$<UCost(L)?'disabled':''}>🔨 강화 ${L>=10?'MAX':UCost(L).toLocaleString()+'원 · '+Math.min(100,URate(L))+'%'}</button>`:''}<br><button class="sm" onclick="eqt(${j})" ${lock||(!on&&g.eq.length>=EQN())?'disabled':''}>${on?'해제':'장착'}</button></div>`}).join(''):'<small class=f>아직 도구가 없습니다.</small>')}
-const HELP={goal:['🎯 목표','<p>2024.3.2 ~ 2025.6.3 (459일)을 버텨, 마지막 날 최종 대결에서 <b>스탯 4종이 전부 1200 이상</b>이면 승리합니다. 시부키검 같은 스탯 배율도 포함됩니다.</p><p>친구들은 승리 조건이 아니라 <b>버프 제공자</b>입니다. 친밀도 50↑, 80↑이 되면 버프를 줍니다.</p><p>❌ 공부 수치 0 → 전학 / 스트레스 100 → 한계 엔딩</p><p>✨ <b>숨은 엔딩</b>: 스탯 총합(배율 포함)이 12,000 이상이 되는 순간 우주최강 각성 민우 엔딩!</p><p>🎭 마지막 날 스탯 총합이 높으면 클리어 대신 특별한 엔딩이 기다립니다… (6,000 / 8,000 / 10,000)</p>'],
+const HELP={goal:['🎯 목표','<p>2024.3.2 ~ 2025.6.3 (459일)을 버텨, 마지막 날 최종 대결에서 <b>스탯 4종이 전부 1200 이상</b>이면 승리합니다. 시부키검 같은 스탯 배율도 포함됩니다.</p><p>친구들은 승리 조건이 아니라 <b>버프 제공자</b>입니다. 친밀도 50↑, 80↑이 되면 버프를 줍니다.</p><p>❌ 공부 수치 0 → 전학 / 스트레스 100 → 한계 엔딩</p><p>✨ <b>숨은 엔딩</b>: 스탯 총합(배율 포함)이 12,000 이상이 되는 순간 우주최강 각성 민우 엔딩!</p><p>🎭 마지막 날 스탯 총합이 높으면 클리어 대신 특별한 엔딩이 기다립니다… (6,000 / 8,000 / 10,000)</p><p>🌌 <b>각성 이후</b>: 한 번 각성하면 다음 판부터 스탯 총합 12,000을 넘어도 끝나지 않아요(<b>✨ 각민엔딩 보러가기</b> 버튼으로 원할 때 각성). 마지막 날 스탯 하나가 5,230 이상이면 가장 높은 스탯의 <b>2회차 엔딩</b>(화해 · 살인 · 야차클럽 승리 · 시드니 워커홀릭남)이 나와요.</p>'],
  week:['📅 한 주','<p>월~금 다섯 칸에 행동을 하나씩 채우고 <b>한 주 진행</b>을 누릅니다.</p><p>💤 토·일은 자동 휴식: 하루마다 스트레스 -2, 친밀도 -1, 공부 -4 (이틀 합계 -4 · -2 · -8)</p><p>평일이 끝날 때마다 공부 -3(공부한 날 제외), 친밀도 소폭 감소(정인 소문), 스트레스 -1</p><p>매주 용돈 5,000원. 버튼에 커서를 올리면 정확한 수치가 보입니다.</p>'],
  act:['🎮 행동','<p>💢 <b>당하기</b>: 스트레스를 받는 대신 <b>모든 친구</b> 친밀도가 오릅니다. 스트레스가 클수록 효율이 좋아집니다.<br>폰 뺏기기 6 → +2<br>게임 셔틀 8 → +3 (공부 -3)<br>치킨 뺏기 10 → +4.5<br>비비탄 맞기 14 → +7<br>양말 우유 마시기 18 → +10</p><p>🎮 <b>놀기</b>: 트릭컬(정웅) · 릴스(준혁) · 젠존제(보석) · 니케(윤성). 그 친구만 +7, 나머지 -2, 스트레스 -4</p><p>📚 <b>공부하기</b>: 공부 +12</p><p>🏋️ <b>스탯 훈련</b>: 해당 스탯 +20 (높을수록 조금씩 덜 오르지만 상한은 없음)</p><p>🎁 <b>도구 뽑기</b>: 돈을 내고 3개 중 1개 획득</p>'],
  stat:['🛡️ 스탯','<p>스탯 4종은 <b>상한 없이</b> 오르고 떨어지지 않습니다. 등급: F(0) E(100) D(200) C(300) B(400) A(500) S(650) S+(800) SS(1000) SS+(1300) SSS(1700)</p><p>🛡️ 탱킹: 당하기 스트레스 감소 (400이면 ×0.5)<br>🗣️ 딜링: 정인 소문으로 인한 친밀도 하락 감소<br>💪 피지컬: 매일 스트레스 감소 (최대 -2)<br>😎 알파메일: 놀이 효과 증가 (최대 +4)</p><p>⚔ 매달 20일 정인 시비와 최종 대결에서 스탯이 필요 수치를 넘는지 판정합니다. 필요 수치는 40에서 시작해 매달 45씩 오르고, 최종 대결은 1200입니다.</p>'],
@@ -446,7 +573,7 @@ const HELP={goal:['🎯 목표','<p>2024.3.2 ~ 2025.6.3 (459일)을 버텨, 마�
  event:['⚔ 이벤트','<p>⚔ <b>정인 시비</b> (매달 20일): 필요 수치를 넘긴 스탯 개수로 결과가 정해집니다.<br>4개 완승(스트레스 -12, 친밀도 +3) · 3개 승리(-6, +1.5) · 2개 무승부(+4) · 0~1개 패배(+14, 친밀도 -3)</p><p>😠 <b>정인 Lv</b>: 매달 올라 당하기 스트레스가 커집니다.</p><p>🗣️ <b>편애 소문</b>: 친밀도 80 이상 친구가 늘수록 소문이 강해집니다 (1명 ×5 · 2명 ×15 · 3명 ×40 · 4명 ×100).</p><p>👩 <b>엄마 방문</b> (격월 15일): 공부 50↑이면 안심(스트레스 -6), 미만이면 스트레스 +15, 용돈 -3,000원</p><p>📝 <b>시험 기간</b>: 공부 하락 +1. 시험 기간이 끝나는 날 공부 -25! 0 미만이 되면 9등급이 나와 공고로 전학가는 배드엔딩입니다. (시험이 오기 전에 공부를 올려두세요)</p><p>🌴 <b>방학</b>: 당하기 스트레스 ×0.5, 대신 친밀도·공부 하락 증가. 방학 매주 월요일에는 <b>특별 이벤트</b>(PC방 번개, 알바, 합숙, 여행, 노래방, 멘탈 코칭, 수상한 상자, 정인의 SNS 소문 등)가 열려 선택지를 고릅니다.</p>']};
 let helpBack=null;function helpClose(){$('ov').style.display='none';const b=helpBack;helpBack=null;if(b)b()}
 function help(t='goal'){const ks=Object.keys(HELP),c=HELP[t][1];ov('📖 게임 규칙',`<div class="tabs">${ks.map(k=>`<button class="sm ${k==t?'on':''}" onclick="help('${k}')">${HELP[k][0]}</button>`).join('')}</div>${typeof c=='function'?c():c}<button class="go" style="margin-top:10px" onclick="helpClose()">닫기</button>`)}
-function start(){$('ov').style.display='none';init();g.live=true;const m=loadMeta(),h=m.gift;if(h==null||!HID[h])return;m.gift=null;saveMeta(m);if(!g.hid.includes(h))g.hid.push(h);if(h==5)g.$+=50000;draw();
+function start(){$('ov').style.display='none';init();g.live=true;g.pa=!!loadEnds()[AWKE];draw();const m=loadMeta(),h=m.gift;if(h==null||!HID[h])return;m.gift=null;saveMeta(m);if(!g.hid.includes(h))g.hid.push(h);if(h==5)g.$+=50000;draw();
  ov('👑 환생',`<div class="scene" style="background:var(--hid)">👑 대 민 우의 힘</div><p>${HID[h][0]} <b>${HID[h][1]}</b>을(를) 가진 채로 다시 태어났다!<br>${HID[h][2]}${h==5?'<br>💰 50,000원 획득!':''}</p><button class="go" onclick="$('ov').style.display='none'">시작</button>`)}
 init();
 function showTitle(){const live=g&&g.live&&!g.over;ov('',`<div class="mainv"><h1>✿ 전설의 민우키우기 ✿</h1><div class="av"><img src="${curAV()}" alt="민우"></div><p class=f>민우는 학폭을 당한 것이 아니다. 세상을 학폭한 것이다.</p>
