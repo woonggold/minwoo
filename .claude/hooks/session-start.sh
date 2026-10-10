@@ -13,6 +13,11 @@ fi
 # `agent-browser install`은 Chrome 다운로드 주소가 네트워크 정책에 막혀 실패하므로,
 # 컨테이너에 미리 깔린 Playwright Chromium을 쓰도록 지정합니다.
 CHROME="$(ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome 2>/dev/null | sort -V | tail -1 || true)"
+# 설정 파일에도 적어 두면 환경 변수가 없는 셸에서도 바로 동작합니다.
+if [ -n "$CHROME" ]; then
+  mkdir -p "$HOME/.agent-browser"
+  printf '{"executablePath":"%s","args":"--no-sandbox"}\n' "$CHROME" > "$HOME/.agent-browser/config.json"
+fi
 if [ -n "$CHROME" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   {
     echo "export AGENT_BROWSER_EXECUTABLE_PATH=\"$CHROME\""
