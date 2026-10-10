@@ -70,6 +70,7 @@ button small{display:block;color:#6b4a3f;font-size:11px}
 #toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:30;background:var(--pn);color:var(--ink);border:1.5px solid color-mix(in srgb,var(--yel) 60%,var(--pn));border-radius:999px;padding:10px 18px;font-size:15px;box-shadow:0 14px 34px -12px var(--shb);display:none;max-width:calc(100vw - 32px);text-align:center}#toast b{color:var(--pk);font-weight:400}
 @media(prefers-reduced-motion:no-preference){#toast.show{animation:pop .32s cubic-bezier(.16,1,.3,1)}}
 .glog{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;background:#fff;color:#1f1f1f;font-size:17px;padding:13px 16px;border-radius:12px;box-shadow:inset 0 0 0 1.5px #dadce0,0 3px 0 var(--shb)}.glog:hover:not(:disabled){background:#f8f9fa}.mainv .glog{max-width:340px;margin:0 auto}.glog svg{width:24px;height:24px;flex:none}.glog small{display:block;color:#5f6368;font-size:12px;text-align:left}
+.awkv{position:relative;max-width:560px;margin:0 auto 6px}.awkv canvas{display:block;width:100%;height:auto;border-radius:20px;border:3px solid var(--pn);box-shadow:0 0 0 3px var(--yel),0 18px 40px -18px #7a2bd8aa;background:#000}.awkb{position:absolute;right:10px;bottom:10px;display:flex;gap:6px}.awkb button{padding:5px 10px;font-size:12px;background:#000a;color:#fff;box-shadow:none;backdrop-filter:blur(4px)}
 input{font-family:inherit;font-size:13px;color:var(--ink);background:var(--pn);border:1.5px solid var(--line);border-radius:12px;padding:6px 10px}input:focus{outline:2px solid var(--pk);outline-offset:1px}
 
 </style></head><body><div class="wrap">
@@ -123,6 +124,78 @@ function achBook(){const m=loadMeta(),a=m.ach||{},got=ACH.filter(x=>a[x[0]]).len
   return `<div class="${on?'on':''}">${pic}<b>${n}</b><small>${d}${on?'<br>달성 '+a[k]:''}</small>${pi!=null?(on?`<button class="sm ${m.pfp===pi?'on':''}" onclick="setPfp(${pi})">${m.pfp===pi?'✔ 현재 프사':'프사로 설정'}</button>`:'<small>🔒 달성하면 민우 프사로 쓸 수 있어요</small>'):''}</div>`}).join('')}</div>
  <p style="font-size:13px">민우 프사: ${m.pfp!=null&&curAV()!==AV?'업적 사진':'기본'} <button class="sm" style="padding:3px 10px" onclick="setPfp(null)">기본 프사로</button></p><p class="f" style="font-size:12px">디버그 모드를 쓴 판에서는 업적이 달성되지 않아요. 업적은 로그인하면 클라우드에도 저장돼요.</p><button class="go" onclick="showTitle()">닫기</button>`)}
 function setPfp(i){const m=loadMeta();if(i==null)delete m.pfp;else m.pfp=i;saveMeta(m);if(g)draw();achBook()}
+// ⚡ 각성 엔딩 애니메이션: 시간 t(초)를 넣으면 그 순간 장면을 그린다 (녹화와 게임이 같은 코드를 씀)
+const AWKFX={dur:7,eyes:[[.455,.305],[.564,.303]],bolts:[1,1.25,1.42,1.7,1.9,2.08,3.1,3.9,4.7],flash:[1,1.7,5.4],
+ words:[[3.2,'ㄷㄷㄷ',.18,.62],[3.55,'지렸다',.78,.56],[3.9,'WOW',.2,.2],[4.2,'ㄹㅇ 각성',.75,.18],[4.55,'미쳤다',.5,.12],[4.9,'정인: ...',.22,.84]],emo:'🔥⚡😂💯😎🤯⚡🔥😱💥'};
+function awkRng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+AWKFX.fly=(()=>{const r=awkRng(77),a=[];for(let i=0;i<26;i++)a.push({t:2.4+r()*3.2,x:r(),vx:(r()-.5)*.5,vy:-(.55+r()*.5),s:.06+r()*.07,rot:(r()-.5)*8,e:[...AWKFX.emo][i%[...AWKFX.emo].length]});return a})();
+// 이모지는 한 번만 작은 그림으로 그려 두고 재사용 (캔버스에 매 프레임 이모지 글자를 그리면 브라우저가 중간부터 안 그리는 문제가 있음)
+const AWKSPR={};function awkSpr(e){if(AWKSPR[e])return AWKSPR[e];const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.font='100px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(e,64,70);return AWKSPR[e]=c}
+function awkBolt(ctx,W,H,seed,tx,ty,life){const r=awkRng(seed);let x=r()*W,y=-10;const pts=[[x,y]],n=12;for(let i=1;i<=n;i++){const k=i/n;x+=(tx-x)/(n-i+1)+(r()-.5)*W*.12;y=ty*k+(r()-.5)*H*.03;pts.push([x,y])}
+ ctx.save();ctx.globalCompositeOperation='lighter';[[26,'rgba(170,90,255,.25)'],[11,'rgba(220,170,255,.55)'],[4,'rgba(255,255,255,.95)']].forEach(([w,c])=>{ctx.lineWidth=w*W/900*life;ctx.strokeStyle=c;ctx.lineJoin='round';ctx.beginPath();pts.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.stroke()});
+ ctx.lineWidth=2*W/900;ctx.strokeStyle='rgba(230,200,255,.7)';for(let i=2;i<n;i+=3){const[a,b]=pts[i];ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(a+(r()-.5)*W*.15,b+r()*H*.12);ctx.stroke()}ctx.restore()}
+function awkText(ctx,W,txt,x,y,size,hue,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.font=`${size}px Jua, 'Noto Sans KR', sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+ ctx.lineWidth=size*.16;ctx.strokeStyle='#1a0820';ctx.strokeText(txt,0,0);const gr=ctx.createLinearGradient(-size*2,0,size*2,0);for(let i=0;i<=4;i++)gr.addColorStop(i/4,`hsl(${hue+i*70},100%,62%)`);ctx.fillStyle=gr;ctx.fillText(txt,0,0);ctx.restore()}
+function drawAwk(ctx,W,H,img,t){const F=AWKFX,u=W/900,ease=x=>x<0?0:x>1?1:x;
+ // 화면 흔들림
+ let sh=t<1?t*4:t<2.2?14*Math.exp(-((t-1)%.25)*8)+4:t<5.4?9+5*Math.sin(t*31):t<5.8?22:Math.max(0,3-(t-5.8)*4);const rs=awkRng(Math.floor(t*30)+1);
+ const dx=(rs()-.5)*sh*u*2,dy=(rs()-.5)*sh*u*2;
+ // 줌: 천천히 다가가다 박자마다 쿵
+ let z=1+.08*ease(t/1);if(t>=2.2&&t<5.4){const b=(t-2.2)%.5;z+=.03+.07*Math.exp(-b*10)}if(t>=5.4)z=1.06-.04*ease((t-5.4)/.8);
+ ctx.save();ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);ctx.translate(W/2+dx,H/2+dy);ctx.scale(z,z);ctx.translate(-W/2,-H/2);
+ const fr=t<1?`brightness(${.35+.25*t})`:t<2.2?'brightness(.85) saturate(1.3)':t<5.4?`saturate(2.6) contrast(1.5) hue-rotate(${Math.sin(t*2.2)*55}deg)`:'saturate(1.15)';
+ ctx.filter=fr;ctx.drawImage(img,0,0,W,H);ctx.filter='none';
+ if(t>=2.6&&t<5.4){ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.22;const o=(8+6*Math.sin(t*13))*u;ctx.filter='hue-rotate(120deg)';ctx.drawImage(img,o,0,W,H);ctx.filter='hue-rotate(240deg)';ctx.drawImage(img,-o,0,W,H);ctx.filter='none';ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'}
+ const ex=F.eyes.map(([a,b])=>[a*W,b*H]),hx=(ex[0][0]+ex[1][0])/2,hy=ex[0][1];
+ // 번개
+ F.bolts.forEach((bt,i)=>{const a=t-bt;if(a>=0&&a<.22)awkBolt(ctx,W,H,1000+i*31+Math.floor(a*20),i%3==0?hx:W*(.15+.7*((i*37)%10)/10),i%3==0?hy-H*.08:H*(.4+.3*((i*53)%10)/10),1-a/.22)});
+ // 눈 레이저
+ if(t>=2.2&&t<5.4){const k=t-2.2,len=W*2;ctx.save();ctx.globalCompositeOperation='lighter';
+  ex.forEach(([x,y],i)=>{const base=i?-.15:Math.PI+.15,sw=t<4.6?.95*Math.sin(t*(7+i*.8)+i*1.3):0,ang=base+sw+(t>=4.6?(i?.6:-.6)*Math.min(1,(t-4.6)/.5)*(i?1:1):0),grow=Math.min(1,k/.15),hue=(t*540+i*120)%360;
+   const tx=x+Math.cos(ang)*len*grow,ty=y+Math.sin(ang)*len*grow+(t>=4.6?H*.5*Math.min(1,(t-4.6)/.6):0);
+   [[60,.18],[30,.35],[12,.8]].forEach(([w,al],j)=>{ctx.strokeStyle=j==2?`rgba(255,255,255,${al})`:`hsla(${hue},100%,60%,${al})`;ctx.lineWidth=w*u*(1+.25*Math.sin(t*40+i));ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(tx,ty);ctx.stroke()});
+   const fl=ctx.createRadialGradient(x,y,0,x,y,70*u);fl.addColorStop(0,'rgba(255,255,255,1)');fl.addColorStop(.3,`hsla(${hue},100%,70%,.8)`);fl.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=fl;ctx.beginPath();ctx.arc(x,y,70*u,0,7);ctx.fill()});
+  ctx.restore()}
+ ctx.restore();
+ // 날아다니는 이모지
+ F.fly.forEach(e=>{const a=t-e.t;if(a<0||a>2.2||t>5.6)return;const x=(e.x+e.vx*a)*W,y=H*(1.05+e.vy*a+.35*a*a),sz=e.s*W*1.25,sp=awkSpr(e.e);ctx.save();ctx.translate(x,y);ctx.rotate(e.rot*a);ctx.drawImage(sp,-sz/2,-sz/2,sz,sz);ctx.restore()});
+ // 글자
+ if(t>=.25&&t<1)awkText(ctx,W,'...민우?',W/2,H*.86,46*u,280,0);
+ if(t>=2.25&&t<3.1)awkText(ctx,W,'삐융삐융~',hx,hy-H*.13,(52+8*Math.sin(t*30))*u,(t*400)%360,Math.sin(t*20)*.12);
+ F.words.forEach(([wt,txt,x,y],i)=>{const a=t-wt;if(a<0||t>=5.4)return;const s=Math.min(1,a/.12)*(1+.08*Math.sin(a*25));awkText(ctx,W,txt,W*x,H*y,(40+i%3*8)*u*s,(t*300+i*60)%360,Math.sin(a*9+i)*.25)});
+ if(t>=3&&t<5.4){const a=t-3,s=Math.min(1,a/.15)*(1+.1*Math.sin(a*18));awkText(ctx,W,'우주최강',W/2,H*.72,96*u*s,(t*360)%360,Math.sin(a*7)*.08);awkText(ctx,W,'각성!!!',W/2,H*.87,120*u*s,(t*360+120)%360,-Math.sin(a*8)*.1)}
+ // 큰 섬광 (1초에 3번 이하)
+ F.flash.forEach(ft=>{const a=t-ft;if(a>=0&&a<.5){ctx.fillStyle=`rgba(255,250,255,${Math.max(0,1-a/.5)*(ft==5.4?1:.75)})`;ctx.fillRect(0,0,W,H)}});
+ if(t>=5.4&&t<5.6){ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(0,0,W,H)}
+ // 마무리: 오라 + 반짝이 + 각성 완료
+ if(t>=5.6){const a=t-5.6,p=.5+.5*Math.sin(a*5);const gr=ctx.createRadialGradient(hx,hy+H*.05,W*.05,hx,hy+H*.05,W*.6);gr.addColorStop(0,`rgba(255,150,255,${.25*p})`);gr.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+  const r=awkRng(5);for(let i=0;i<22;i++){const sx=r()*W,sy=r()*H,ph=r()*6,b=Math.max(0,Math.sin(a*6+ph));ctx.fillStyle=`rgba(255,255,255,${b})`;ctx.beginPath();ctx.arc(sx,sy,(2+3*b)*u,0,7);ctx.fill()}
+  awkText(ctx,W,'✨ 각성 완료 ✨',W/2,H*.88,72*u*Math.min(1,a/.25),(t*120)%360,0)}}
+// 효과음 (WebAudio로 합성): 게임에서는 실시간, 영상에서는 OfflineAudioContext로 녹음
+function awkSfx(ac,at,out){const N=ac.sampleRate,nb=(d)=>{const b=ac.createBuffer(1,N*d,N),c=b.getChannelData(0);for(let i=0;i<c.length;i++)c[i]=Math.random()*2-1;return b};
+ const env=(node,t,a,peak,d)=>{const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.001,t+d);node.connect(g);g.connect(out);return g};
+ const noise=(t,d,peak,f0,f1)=>{const s=ac.createBufferSource();s.buffer=nb(d);const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(f1,t+d);s.connect(f);env(f,t,.005,peak,d);s.start(t);s.stop(t+d)};
+ const osc=(t,type,f0,f1,d,peak)=>{const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+d);env(o,t,.01,peak,d);o.start(t);o.stop(t+d+.02)};
+ {const s=ac.createBufferSource();s.buffer=nb(1);const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(80,at);f.frequency.linearRampToValueAtTime(400,at+1);s.connect(f);const g=ac.createGain();g.gain.setValueAtTime(.01,at);g.gain.linearRampToValueAtTime(.5,at+1);f.connect(g);g.connect(out);s.start(at);s.stop(at+1)}
+ AWKFX.bolts.forEach((b,i)=>noise(at+b,i==0?1.6:.7,i==0?1:.55,i==0?6000:3000,120));AWKFX.bolts.slice(0,1).forEach(b=>osc(at+b,'sine',90,30,1.2,.9));
+ for(let k=0;k<18;k++){const t=at+2.2+k*.18;osc(t,'sawtooth',1800-k*40,260,.16,.18)}
+ for(let k=0;k<7;k++){const t=at+2.2+k*.5;osc(t,'sine',150,45,.25,.9)}
+ [3,3.25,3.5,4.6,4.78].forEach(h=>[466,554,698].forEach(f=>osc(at+h,'sawtooth',f,f*.94,.2,.12)));
+ noise(at+5.4,2,1,8000,80);osc(at+5.4,'sine',70,25,1.6,1);
+ [1047,1319,1568,2093].forEach((f,i)=>osc(at+5.65+i*.09,'triangle',f,f,.5,.18))}
+
+// 각성 엔딩 재생기
+let AWKP=null;const awkMuted=()=>{try{return localStorage.getItem('awk_mute')=='1'}catch(e){return false}};
+function awkMute(){const m=!awkMuted();try{localStorage.setItem('awk_mute',m?'1':'0')}catch(e){}if(AWKP&&AWKP.gain)AWKP.gain.gain.value=m?0:.5;const b=$('awks');if(b)b.textContent=m?'🔇 소리 꺼짐':'🔊 소리 켜짐'}
+function awkPlay(){const cv=$('awkc');if(!cv)return;const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;if(AWKP){cancelAnimationFrame(AWKP.raf);try{AWKP.gain&&AWKP.gain.disconnect()}catch(e){}}
+ const P=AWKP={raf:0,gain:null};const img=new Image();img.src=AWK;
+ const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ img.onload=()=>{if(reduce){ctx.drawImage(img,0,0,W,H);return}
+  Object.keys(AWKSPR).forEach(k=>delete AWKSPR[k]);[...AWKFX.emo].forEach(awkSpr);let rebuilt=false;
+  try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){window._awkAC=window._awkAC||new AC();const ac=_awkAC;if(ac.state=='suspended')ac.resume();P.gain=ac.createGain();P.gain.gain.value=awkMuted()?0:.5;P.gain.connect(ac.destination);awkSfx(ac,ac.currentTime+.05,P.gain)}}catch(e){console.warn('효과음 실패',e)}
+  const t0=performance.now();const L=now=>{if(!document.contains(cv)||AWKP!==P){try{P.gain&&P.gain.disconnect()}catch(e){}return}let t=(now-t0)/1000;
+   if(!rebuilt&&t>=1.5){rebuilt=true;Object.keys(AWKSPR).forEach(k=>delete AWKSPR[k])}
+   if(t>AWKFX.dur)t=6+((t-6)%1);drawAwk(ctx,W,H,img,t);P.raf=requestAnimationFrame(L)};P.raf=requestAnimationFrame(L)}}
 let g;const T=$('tip');
 const f1=v=>+v.toFixed(1),sg=v=>(v>0?'+':'')+f1(v),R=(m,k)=>(m.w[k]||[]).map(s=>' · '+s).join('');
 const nm=a=>({b:BL[a.i]?.[0],p:PL[a.i]?.[0],t:TR[a.i]?.[0],s:'공부하기',c:'도구 뽑기',d:'딸배',a:ADV[a.i]?.[0]+' 조언',r:'휴식',i:'멍하니 보냄'})[a.k];
@@ -231,7 +304,7 @@ function runDay(a){const d=g.d,x=dt(d),m=M(),k=a.k,wk=!x.getDay()||x.getDay()==6
  if(g.sd<=0)return end('전학 엔딩 (배드)','공부 수치가 0이 되었습니다. 민우는 결국 다른 학교로 전학을 가게 됩니다.');
  if(g.st>=100)return end('한계 엔딩 (배드)','스트레스가 한계에 도달했습니다. 민우는 더는 학교에 나갈 수 없게 되었습니다.');
  if(eff().reduce((a,b)=>a+b,0)>=AWN)return awake();if(g.d>=TOTAL)finalEnd()}
-function awake(){const e=eff(),sum=Math.round(e.reduce((a,b)=>a+b,0));end('✨ 우주최강 각성 민우 엔딩 ✨',`<img class="xp" src="${AWK}" alt="" style="width:100%;max-width:520px"><br>스탯 총합이 <b>${sum.toLocaleString()}</b> (기준 ${AWN.toLocaleString()})을 돌파했다.<br>민우의 눈에서 빛이 터져 나오고, 정인은 더는 말을 잇지 못했다. 민우는 우주 최강으로 각성했다!<br><br>${e.map((v,i)=>ST[i][0]+' '+rank(v)[0]+' '+Math.round(v)).join(' · ')}`)}
+function awake(){const e=eff(),sum=Math.round(e.reduce((a,b)=>a+b,0));end('✨ 우주최강 각성 민우 엔딩 ✨',`<div class="awkv"><canvas id="awkc" width="840" height="658" aria-label="각성 민우 애니메이션"></canvas><div class="awkb"><button id="awks" onclick="awkMute()">${awkMuted()?'🔇 소리 꺼짐':'🔊 소리 켜짐'}</button><button onclick="awkPlay()">↻ 다시 보기</button></div></div><br>스탯 총합이 <b>${sum.toLocaleString()}</b> (기준 ${AWN.toLocaleString()})을 돌파했다.<br>민우의 눈에서 빛이 터져 나오고, 정인은 더는 말을 잇지 못했다. 민우는 우주 최강으로 각성했다!<br><br>${e.map((v,i)=>ST[i][0]+' '+rank(v)[0]+' '+Math.round(v)).join(' · ')}`)}
 function fight(mi){const T0=need(mi),e=eff(),c=e.filter(v=>v>=T0).length,o=[['패배',14,-3],['패배',14,-3],['무승부',4,0],['승리',-6,1.5],['완승',-12,3]][c];
  g.st+=o[1];g.a=g.a.map(y=>y+o[2]);fpop(mi,T0,e,c,o);add(`⚔ 정인 대면 (필요 ${T0}) ${ST.map((s,i)=>s[1]+Math.round(e[i])+(e[i]>=T0?'○':'×')).join(' ')} → ${o[0]}! 스트레스 ${sg(o[1])}${o[2]?`, 친밀도 ${sg(o[2])}`:''}`,c>=3?'g':c==2?'m':'b')}
 function finalEnd(){g.d=TOTAL-1;const e=eff(),sm=`스탯 ${e.map((v,i)=>ST[i][0]+' '+rank(v)[0]+' '+Math.round(v)).join(' · ')}<br>친밀도 ${g.a.map(Math.round).join(' / ')}`;
@@ -267,7 +340,7 @@ function vpick(k,i){const e={...VEV[k][3][i][1]};let t='';
  ov('결과',`<p>${t}${esum(e)}</p><button class="go" onclick="$('ov').style.display='none'">확인</button>`)}
 function nextWk(){$('ov').style.display='none';if(g.vev&&!g.over){g.vev=false;vevent()}}
 function ov(h,b){$('ovb').innerHTML=`<h1>${h}</h1>${b}`;delete $('ovb').dataset.book;$('ov').style.display='grid'}
-function end(h,b){g.over=true;g.q=[];draw();const awk=h==AWKE;if(awk)saveMeta(loadMeta());const nw=saveEnd(h);ov(h,`${nw?'<p class="nw">🎉 새 엔딩 수집! 📚 엔딩 도감에 기록되었습니다.</p>':''}<p>${b}</p><p id="rkmsg" class=f style="font-size:13px"></p>${awk?`<div id="daemin">${daeMin()}</div>`:''}<button class="go" onclick="start()">${awk?'👑 환생하기':'다시 시작'}</button> <button class="sm" onclick="book('showTitle()')">📚 엔딩 도감</button> <button class="sm" onclick="ranking(0)">🏆 랭킹</button>`);submitRank(h)}
+function end(h,b){g.over=true;g.q=[];draw();const awk=h==AWKE;if(awk)saveMeta(loadMeta());const nw=saveEnd(h);ov(h,`${nw?'<p class="nw">🎉 새 엔딩 수집! 📚 엔딩 도감에 기록되었습니다.</p>':''}<p>${b}</p><p id="rkmsg" class=f style="font-size:13px"></p>${awk?`<div id="daemin">${daeMin()}</div>`:''}<button class="go" onclick="start()">${awk?'👑 환생하기':'다시 시작'}</button> <button class="sm" onclick="book('showTitle()')">📚 엔딩 도감</button> <button class="sm" onclick="ranking(0)">🏆 랭킹</button>`);submitRank(h);if(awk)awkPlay()}
 const ENDS=[['클리어! ✿ 정인을 이겼다','🏆','마지막 날 최종 대결에서 스탯 4종 모두 1200 이상'],['✨ 우주최강 각성 민우 엔딩 ✨','🌌','스탯 총합이 어마어마하게 커지면…?'],['👑 패왕색패기 민우 엔딩','👑','마지막 날 스탯 총합이 아주 아주 높다면'],['🌸 우주꽃미남 민우 엔딩','🌸','마지막 날 스탯 총합이 꽤 높다면'],['🐒 유인원 민우 엔딩','🐒','마지막 날 스탯 총합이 제법 높다면'],['시간 종료 (배드)','⌛','마지막 날까지 버텼지만 스탯이 모자라다면'],['9등급 엔딩 (배드)','📝','시험이 끝났을 때 공부 수치가 바닥이라면'],['전학 엔딩 (배드)','🚚','공부 수치가 0이 되면'],['한계 엔딩 (배드)','💥','스트레스가 100에 도달하면']],EK='minwoo459_endings';
 // ☁️ Firebase 설정: Firebase 콘솔 → 프로젝트 설정 → 내 앱(웹)의 firebaseConfig 값을 붙여 넣으세요. 비워 두면 브라우저에만 저장됩니다.
 const FB={apiKey:'AIzaSyDLi_tTyS4MRE6Ou878EBhCuoZ709B3Cds',authDomain:'minwoo-ae82f.firebaseapp.com',projectId:'minwoo-ae82f',appId:'1:197012971662:web:8d85dd25b3117a982329df'};
