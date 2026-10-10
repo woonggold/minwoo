@@ -16,5 +16,17 @@ service cloud.firestore {
         && request.resource.data.s2 is number && request.resource.data.s3 is number;
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
+    // 판 기록: 게임이 끝날 때마다 한 판씩 쌓입니다. 누구나 볼 수 있고, 자기 uid로만 추가할 수 있으며 고칠 수 없습니다.
+    match /runs/{runId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'total', 's0', 's1', 's2', 's3', 'end', 'at'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 12
+        && request.resource.data.total is number
+        && request.resource.data.s0 is number && request.resource.data.s1 is number
+        && request.resource.data.s2 is number && request.resource.data.s3 is number;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
   }
 }
