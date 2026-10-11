@@ -5,27 +5,59 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // 랭킹·판 기록 검사: 게임에서 나올 수 없는 값은 거부합니다.
+    // 상한: 모든 전설 도구 +10, 파트너, 미니게임 만점을 매일 해도 스탯 하나 약 41,000 (index.html의 STATMAX/TOTMAX와 같은 값)
+    function validRecord(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 12
+        && d.s0 is int && d.s1 is int && d.s2 is int && d.s3 is int
+        && d.s0 >= 0 && d.s1 >= 0 && d.s2 >= 0 && d.s3 >= 0
+        && d.s0 <= 50000 && d.s1 <= 50000 && d.s2 <= 50000 && d.s3 <= 50000
+        && d.total == d.s0 + d.s1 + d.s2 + d.s3 && d.total <= 55000
+        && d.end in [
+          '클리어! ✿ 정인을 이겼다',
+          '✨ 우주최강 각성 민우 엔딩 ✨',
+          '🕊️ 화해 엔딩',
+          '💀 살인 엔딩',
+          '🥊 야차클럽 승리 엔딩',
+          '🦘 시드니 워커홀릭남 엔딩',
+          '👑 패왕색패기 민우 엔딩',
+          '🌸 우주꽃미남 민우 엔딩',
+          '🐒 유인원 민우 엔딩',
+          '시간 종료 (배드)',
+          '9등급 엔딩 (배드)',
+          '전학 엔딩 (배드)',
+          '한계 엔딩 (배드)'
+        ]
+        && d.at == request.time;
+    }
+
     // 랭킹: 누구나 볼 수 있고, 자기 기록(ranking/{자기 uid})만 쓸 수 있습니다.
     match /ranking/{uid} {
       allow read: if true;
-      allow create, update: if request.auth != null && request.auth.uid == uid
+      allow create: if request.auth != null && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['name', 'total', 's0', 's1', 's2', 's3', 'end', 'at'])
-        && request.resource.data.name is string && request.resource.data.name.size() <= 12
-        && request.resource.data.total is number
-        && request.resource.data.s0 is number && request.resource.data.s1 is number
-        && request.resource.data.s2 is number && request.resource.data.s3 is number;
+        && validRecord(request.resource.data);
+      // 최고 기록 갱신은 더 높은 점수만, 20초에 한 번까지. 닉네임만 바꾸는 건 언제든 가능.
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'total', 's0', 's1', 's2', 's3', 'end', 'at'])
+        && (
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+            && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 12)
+          || (validRecord(request.resource.data)
+            && request.resource.data.total > resource.data.total
+            && request.time > resource.data.at + duration.value(20, 's'))
+        );
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
+
     // 판 기록: 게임이 끝날 때마다 한 판씩 쌓입니다. 누구나 볼 수 있고, 자기 uid로만 추가할 수 있으며 고칠 수 없습니다.
     match /runs/{runId} {
       allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'name', 'total', 's0', 's1', 's2', 's3', 'end', 'at'])
-        && request.resource.data.name is string && request.resource.data.name.size() <= 12
-        && request.resource.data.total is number
-        && request.resource.data.s0 is number && request.resource.data.s1 is number
-        && request.resource.data.s2 is number && request.resource.data.s3 is number;
+        && validRecord(request.resource.data);
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
   }
